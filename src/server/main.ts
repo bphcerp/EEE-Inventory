@@ -4,6 +4,9 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import { config } from "dotenv";
 
+// Importing Routes
+import authRoutes from "./routes/authRoutes.js";
+
 //TypeORM Required Metadata Import
 import "reflect-metadata"
 
@@ -20,6 +23,9 @@ app.use(express.json());
 
 // Parse the cookies to a JSON object
 app.use(cookieParser());
+
+// Using the routes from the routes folder
+app.use("/api/auth", authRoutes);
 
 //GET: /api API Home Route
 app.get("/api", (_, res) => {

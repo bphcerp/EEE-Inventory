@@ -1,11 +1,10 @@
-import { OAuth2Client } from 'google-auth-library';
 import { Request, Response, NextFunction } from 'express';
+import { userRepository } from '../repositories/userRepository.js';
+const jwt = require('jsonwebtoken');
 
-const client = new OAuth2Client('YOUR_CLIENT_ID');
-
-//Auth Middleware to verify the token using Google OAuth2Client
+// Auth Middleware to verify the token
 const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
-    //Cookie Parser is used a middleware before this to parse the cookies
+    // Cookie Parser is used as middleware before this to parse the cookies
     const token = req.cookies.token;
 
     if (!token) {
@@ -13,12 +12,17 @@ const authMiddleware = async (req: Request, res: Response, next: NextFunction) =
     }
 
     try {
-        await client.verifyIdToken({
-            idToken: token,
-            audience: process.env.OAUTH_CID,
-        });
+        const decoded = jwt.verify(token, process.env.JWT_SECRET) as { userId: string };
+        const user = await userRepository.findOneBy({ id: parseInt(decoded.userId) });
+
+        if (!user) {
+            return res.status(401).json({ message: 'Invalid token' });
+        }
+
+        next();
     } catch (error) {
         res.status(401).json({ message: 'Token verification failed', error: (error as Error).message });
+        console.error(error);
     }
 };
 

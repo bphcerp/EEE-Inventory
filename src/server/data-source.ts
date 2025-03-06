@@ -7,7 +7,7 @@ config()
 
 const { POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB, POSTGRES_HOST, POSTGRES_PORT } = process.env;
 
-if (!POSTGRES_USER || !POSTGRES_PASSWORD || !POSTGRES_DB || POSTGRES_HOST || POSTGRES_PORT) {
+if (!POSTGRES_USER || !POSTGRES_PASSWORD || !POSTGRES_DB || !POSTGRES_HOST || !POSTGRES_PORT) {
     throw new Error("Missing required environment variables: POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB, POSTGRES_HOST, POSTGRES_PORT");
 }
 
@@ -24,3 +24,11 @@ export const AppDataSource = new DataSource({
     migrations: [],
     subscribers: [],
 })
+
+AppDataSource.initialize()
+    .then(() => {
+        console.log(`Connected to POSTGRES User: ${POSTGRES_USER} DB: ${POSTGRES_DB} PORT: ${POSTGRES_PORT}`)
+    })
+    .catch((err) => {
+        console.error("Error during Data Source initialization:", err)
+    })

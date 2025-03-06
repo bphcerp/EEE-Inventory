@@ -2,35 +2,36 @@ import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { config } from 'dotenv';
 import { userRepository } from '../repositories/userRepository.js';
-import { OAuth2Client } from 'google-auth-library'
+import { OAuth2Client } from 'google-auth-library';
 
 config();
 
 const JWT_SECRET = process.env.JWT_SECRET!;
-const client = new OAuth2Client(process.env.OAUTH_CID)
 
 // Sign In Controller
 export const signIn = async (req: Request, res: Response) => {
-    const { credential } = req.body;
+    const { token } = req.body;
+    const client = new OAuth2Client(process.env.OAUTH_CID)
 
     try {
-        const ticket = await client.verifyIdToken({
-			idToken: credential,
-			audience: process.env.OAUTH_CID
-		})
-        const decoded = ticket.getPayload()!;
-        const user = await userRepository.findOneBy({ email: decoded.email });
+
+        const tokenInfo = await client.getTokenInfo(token);
+        const email = tokenInfo.email;
+
+        const user = await userRepository.findOneBy({ email });
 
         if (!user) {
-            return res.status(401).json({ message: 'Invalid credentials' });
+            res.status(404).json({ message: 'User not found!' })
+            return
         }
 
-        const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '1h' });
-        res.cookie('token', token, { httpOnly: true });
+        const jwtToken = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '1h' });
+        res.cookie('token', jwtToken, { httpOnly: true });
 
         res.status(200).json({ message: 'Signed in successfully' });
     } catch (error) {
         res.status(500).json({ message: 'Error signing in', error: (error as Error).message });
+        console.error(error);
     }
 };
 
