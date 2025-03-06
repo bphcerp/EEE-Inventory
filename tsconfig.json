@@ -14,10 +14,17 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
+
+    //ShadCN Alias
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/client/*"]
-    }
+    },
+
+    //TypeORM settings
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "strictPropertyInitialization": false
   },
-  "include": ["src"],
+  "include": ["src"]
 }
