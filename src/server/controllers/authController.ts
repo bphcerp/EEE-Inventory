@@ -26,7 +26,7 @@ export const signIn = async (req: Request, res: Response) => {
         }
 
         const jwtToken = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '1h' });
-        res.cookie('token', jwtToken, { httpOnly: true });
+        res.cookie('token', jwtToken, { httpOnly: true, sameSite: 'strict', expires: new Date(Date.now() + 3600000) });
 
         res.status(200).json({ message: 'Signed in successfully' });
     } catch (error) {
@@ -37,6 +37,6 @@ export const signIn = async (req: Request, res: Response) => {
 
 // Sign Out Controller
 export const signOut = (req: Request, res: Response) => {
-    res.clearCookie('token');
+    res.clearCookie('token', { sameSite: 'strict' });
     res.status(200).json({ message: 'Signed out successfully' });
 };
