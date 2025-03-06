@@ -3,8 +3,8 @@ import ViteExpress from "vite-express";
 
 const app = express();
 
-app.get("/hello", (_, res) => {
-  res.send("Hello Vite + React + TypeScript!");
+app.get("/api", (_, res) => {
+  res.send("EEE Inventory API.");
 });
 
 ViteExpress.listen(app, 3000, () =>

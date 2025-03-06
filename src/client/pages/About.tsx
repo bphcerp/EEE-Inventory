@@ -2,36 +2,30 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar } from "@/components/ui/avatar";
 import { motion } from "framer-motion";
 import { AvatarFallback, AvatarImage } from "@radix-ui/react-avatar";
+import { Link } from "react-router";
 
 const About = () => {
     const people = [
         {
-            name: "Prof. Harish V. Dixit",
-            fallback: "HVD",
-            role: "Head & Assistant Professor, EEE Department",
-            description: "Founder, LAMBDA Lab, BITS Hyderabad",
-            image: "/prof_hvd.jpg",
+            name: "P. V. Pranava Sreeyush",
+            fallback: "PS",
+            role: "Website Developer",
+            email: "poluripranav@gmail.com",
+            image: "/developer_pranav.jpg",
         },
         {
             name: "Prof. Supradeepan K",
             fallback: "SK",
             role: "Associate Professor, Department of Mechanical Engineering",
-            description: "Website Incharge, BITS Hyderabad",
+            email: "supradeepan@hyderabad.bits-pilani.ac.in",
             image: "/prof_supradeepan.jpg",
-        },
-        {
-            name: "P. V. Pranava Sreeyush",
-            fallback: "PS",
-            role: "Website Developer",
-            description: "2026 Graduate, BITS Hyderabad",
-            image: "/developer_pranav.jpg",
         },
     ];
 
     return (
         <div className="container mx-auto flex flex-col space-y-6 py-4 px-4">
             <h1 className="text-4xl font-bold text-center mb-8">The Team</h1>
-            <div className="grid grid-cols-1 md:grid-cols-3">
+            <div className="grid grid-cols-1 md:grid-cols-2">
                 {people.map((person, index) => (
                     <motion.div
                         key={index}
@@ -40,7 +34,7 @@ const About = () => {
                         transition={{ duration: 0.5, delay: index * 0.2 }}
                         className="flex justify-center items-center"
                     >
-                        <Card className="text-center w-80 h-64 shadow-xl dark:shadow-zinc-900 rounded-2xl bg-zinc-100 dark:bg-zinc-900">
+                        <Card className="text-center w-96 h-64 shadow-xl dark:shadow-zinc-900 rounded-2xl bg-zinc-100 dark:bg-zinc-900">
                             <CardHeader>
                                 <div className="flex flex-col justify-center items-center">
                                     <Avatar className="size-16">
@@ -50,9 +44,9 @@ const About = () => {
                                     <CardTitle className="mt-4 text-lg">{person.name}</CardTitle>
                                 </div>
                             </CardHeader>
-                            <CardContent className="text-sm">
+                            <CardContent className="text-sm flex flex-col space-y-1">
                                 <p className="text-gray-500 dark:text-gray-400 font-semibold">{person.role}</p>
-                                <p className="mt-2 text-gray-700 dark:text-gray-500">{person.description}</p>
+                                <Link target="_blank" rel="noopener noreferrer" to={`mailto:${person.email}`} className="mt-2 hover:underline text-gray-700 dark:text-gray-500">Email: {person.email}</Link>
                             </CardContent>
                         </Card>
                     </motion.div>
