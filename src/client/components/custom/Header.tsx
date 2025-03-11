@@ -20,10 +20,10 @@ export const Header = () => {
     }
 
     return (
-        <header className="w-full h-16 flex justify-between items-center px-2">
+        <header className="w-full h-16 grid grid-cols-3 items-center px-2">
             <img className="w-12 h-12" src="/logocolor.png" />
             <NavBar />
-            <div className="flex items-center space-x-2">
+            <div className="flex justify-end items-center space-x-2">
                 <Button variant="outline" onClick={handleLogout}>Logout <LogOut color="red" /></Button>
                 <ModeToggle />
             </div>

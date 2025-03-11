@@ -8,6 +8,7 @@ import authRoutes from "./authRoutes.js";
 import authMiddleware from '../middleware/authMiddleware.js';
 import userRoutes from './userRoutes.js';
 import morgan from 'morgan';
+import labRoutes from './labRoutes.js';
 
 
 const router = Router();
@@ -19,6 +20,9 @@ router.use(morgan('combined'))
 router.use('/auth', authRoutes);
 
 // User API routes
-router.use('/user',authMiddleware, userRoutes);
+router.use('/users',authMiddleware, userRoutes);
+
+// Lab API routes
+router.use('/labs',authMiddleware, labRoutes);
 
 export default router;

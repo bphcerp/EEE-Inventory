@@ -2,62 +2,28 @@ import { Menubar, MenubarMenu, MenubarTrigger, MenubarContent, MenubarItem } fro
 import { Home, Layers, Settings, Info } from "lucide-react";
 import { Link } from "react-router";
 import { Input } from "../ui/input";
-import { ChangeEvent, useState } from "react";
+import { ChangeEvent, useEffect, useState } from "react";
 import FuzzySearch from 'fuzzy-search';
-
-//Will be removed once backend is configured and initialized with data
-const labs = [
-  "Optical Communication Lab",
-  "Advanced Digital Communication",
-  "Reconfigurable Computing Lab",
-  "Microprocessor Lab",
-  "Power Systems Lab",
-  "Control Systems Lab",
-  "Power Electronics Lab",
-  "Instrumentation Lab",
-  "FPGA Lab",
-  "MEMS Lab",
-  "Digital Design Lab",
-  "Communication Systems Lab",
-  "Microelectronics Circuits Lab",
-  "Nanoscale Devices Lab",
-  "Device & Sensors Characterization Lab",
-  "VLSI CAD Lab",
-  "High Voltage Lab",
-  "PMMD Lab",
-  "IoT Lab",
-  "Embedded Systems Lab",
-  "Analog Electronics Lab",
-  "Digital Signal Processing Lab",
-  "RF and Microwave Lab",
-  "Analog IC Design Lab",
-  "Mobile and Personal Communication Lab",
-  "Hardware Software Co-Design Lab",
-  "Coding Theory and Practice Lab",
-  "EM Field and Microwave Lab",
-  "Analog and Digital VLSI Design Lab",
-  "Computer Architecture Lab",
-  "Advanced Computing Lab",
-  "Electronic Device Simulation Lab",
-  "Signals and Systems Lab",
-  "Software for Embedded Systems Lab",
-  "DST FIST Lab",
-  "CoRAS Lab",
-  "ADDRESS Lab",
-  "Electrical Machines Lab",
-  "CAD for IC Design Lab",
-  "IC Fabrication Lab",
-];
+import { Laboratory } from "src/server/entities/entities";
 
 export const NavBar = () => {
-  const [filteredLabs, setFilteredLabs] = useState(labs);
+  const [labs, setLabs] = useState<Laboratory[]>([])
+  const [filteredLabs, setFilteredLabs] = useState<Laboratory[]>([])
 
-  const handleSearch = (e : ChangeEvent<HTMLInputElement>) => {
+  useEffect(() => {
+    fetch('/api/labs').then(res => res.json()).then(data => {
+      setLabs(data);
+      setFilteredLabs(data);
+    })
+      .catch(err => console.error(err));
+  }, [])
+
+  const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
     const searchQuery = e.target.value.trim();
     if (searchQuery === "") {
       setFilteredLabs(labs);
     } else {
-      const searcher = new FuzzySearch(labs);
+      const searcher = new FuzzySearch(labs, ['name'], { caseSensitive: false });
       setFilteredLabs(searcher.search(searchQuery));
     }
   };
@@ -73,17 +39,19 @@ export const NavBar = () => {
       </MenubarMenu>
 
       <MenubarMenu>
-        <MenubarTrigger>
+        <MenubarTrigger className="hover:cursor-pointer">
           <Layers className="w-5 h-5 mr-2" /> Labs
         </MenubarTrigger>
         <MenubarContent onInteractOutside={() => setFilteredLabs(labs)}>
           <div className="flex flex-col space-y-2 p-1">
             <Input onKeyDown={(e) => e.stopPropagation()} onChange={handleSearch} className="w-52 h-8" placeholder="Search for Lab..." />
-            <div className="h-72 grid grid-cols-2 overflow-y-auto">
+            <div className="max-h-72 grid grid-cols-2 overflow-y-auto">
               {filteredLabs.map((lab, index) => (
-                <MenubarItem key={index} className="w-52 h-10">
-                  <Link to={`/labs/${lab.toLowerCase().replace(/\s+/g, "-")}`}>{lab}</Link>
-                </MenubarItem>
+                <Link to={`/labs/${lab.id}`} key={lab.id}>
+                  <MenubarItem key={index} className={`hover:cursor-pointer w-52 h-10 ${(Math.floor(index / 2) + (index % 2)) % 2 !== 0 && "bg-zinc-100 hover:bg-zinc-200! dark:bg-zinc-900 dark:hover:bg-zinc-800!"}`}>
+                    {lab.name}
+                  </MenubarItem>
+                </Link>
               ))}
             </div>
           </div>
