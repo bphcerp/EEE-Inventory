@@ -1,18 +1,18 @@
 import React, { createContext, FunctionComponent, ReactNode, useContext, useEffect, useState } from 'react';
 import axios from 'axios';
 
-const UserPermissionsContext = createContext<number | undefined>(undefined);
+const UserPermissionsContext = createContext<boolean | undefined>(undefined);
 
 export const UserPermissionsProvider = ({ children } : {children : ReactNode}) => {
 
     // 0 is default (read only)
-    const [permissions, setPermissions] = useState<number>(0);
+    const [permissions, setPermissions] = useState<boolean>(false);
 
     useEffect(() => {
         const fetchPermissions = async () => {
             try {
                 const response = await axios.get('/api/users/permissions');
-                setPermissions(response.data.permissions);
+                setPermissions(response.data.permissions === 1);
             } catch (error) {
                 console.error('Failed to fetch user permissions:', error);
             }

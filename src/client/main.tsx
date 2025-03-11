@@ -7,6 +7,7 @@ import App from './App'
 import { ThemeProvider } from './components/theme-provider'
 import { Layout } from './layouts/Layout'
 import About from './pages/About'
+import Settings from './pages/Settings'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -17,6 +18,7 @@ createRoot(document.getElementById('root')!).render(
           <Route element={<Layout />}>
             <Route path='/dashboard' element={<div></div>} />
             <Route path='/about' element={<About />} />
+            <Route path='/settings' element={<Settings />} />
           </Route>
         </Routes>
       </ThemeProvider>

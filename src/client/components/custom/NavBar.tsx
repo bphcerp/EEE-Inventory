@@ -45,9 +45,9 @@ export const NavBar = () => {
         <MenubarContent onInteractOutside={() => setFilteredLabs(labs)}>
           <div className="flex flex-col space-y-2 p-1">
             <Input onKeyDown={(e) => e.stopPropagation()} onChange={handleSearch} className="w-52 h-8" placeholder="Search for Lab..." />
-            <div className="max-h-72 grid grid-cols-2 overflow-y-auto">
+            <div className="max-h-72 grid grid-cols-2 overflow-y-auto gap-1">
               {filteredLabs.map((lab, index) => (
-                <Link to={`/labs/${lab.id}`} key={lab.id}>
+                <Link  to={`/labs/${lab.id}`} key={lab.id}>
                   <MenubarItem key={index} className={`hover:cursor-pointer w-52 h-10 ${(Math.floor(index / 2) + (index % 2)) % 2 !== 0 && "bg-zinc-100 hover:bg-zinc-200! dark:bg-zinc-900 dark:hover:bg-zinc-800!"}`}>
                     {lab.name}
                   </MenubarItem>
