@@ -210,115 +210,112 @@ export function DataTable<T>({ data, columns, mainSearchColumn }: DataTableProps
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
-            <div className="rounded-md border p-2">
-                <Table>
-                    <TableHeader>
-                        {table.getHeaderGroups().map((headerGroup) => (
-                            <TableRow className="flex items-center" key={headerGroup.id}>
-                                <Checkbox
-                                    checked={
-                                        table.getIsAllPageRowsSelected() ||
-                                        (table.getIsSomePageRowsSelected() && "indeterminate")
-                                    }
-                                    onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-                                    aria-label="Select all"
-                                />
-                                {headerGroup.headers.map((header) => {
-                                    return (
-                                        <TableHead className="flex items-center" key={header.id}>
-                                            {header.isPlaceholder
-                                                ? null
-                                                : flexRender(
-                                                    header.column.columnDef.header,
-                                                    header.getContext()
-                                                )}
-                                            <div className="my-2 max-w-fit">
-                                                {(!mainSearchColumn || header.column.columnDef.header?.toString().toLowerCase() !== mainSearchColumn.toString().toLowerCase()) && renderFilter(header.column)}
-                                            </div>
-                                        </TableHead>
-                                    )
-                                })}
-                            </TableRow>
-                        ))}
-                    </TableHeader>
-                    <TableBody>
-                        {table.getVisibleLeafColumns().length && table.getRowModel().rows?.length ? (
-                            table.getRowModel().rows.map((row) => (
-                                <TableRow
-                                    key={row.id}
-                                    className="flex items-center"
-                                    data-state={row.getIsSelected() && "selected"}
-                                >
+            {table.getVisibleLeafColumns().length && table.getRowModel().rows?.length ? <>
+                <div className="rounded-md border p-2">
+                    <Table>
+                        <TableHeader>
+                            {table.getHeaderGroups().map((headerGroup) => (
+                                <TableRow className="flex items-center" key={headerGroup.id}>
                                     <Checkbox
-                                        checked={row.getIsSelected()}
-                                        onCheckedChange={(value) => row.toggleSelected(!!value)}
-                                        aria-label="Select row"
+                                        checked={
+                                            table.getIsAllPageRowsSelected() ||
+                                            (table.getIsSomePageRowsSelected() && "indeterminate")
+                                        }
+                                        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+                                        aria-label="Select all"
                                     />
-                                    {row.getVisibleCells().map((cell) => (
-                                        <TableCell key={cell.id}>
-                                            {flexRender(
-                                                cell.column.columnDef.cell,
-                                                cell.getContext()
-                                            )}
-                                        </TableCell>
-                                    ))}
+                                    {headerGroup.headers.map((header) => {
+                                        return (
+                                            <TableHead className="flex items-center" key={header.id}>
+                                                {header.isPlaceholder
+                                                    ? null
+                                                    : flexRender(
+                                                        header.column.columnDef.header,
+                                                        header.getContext()
+                                                    )}
+                                                <div className="my-2 max-w-fit">
+                                                    {(!mainSearchColumn || header.column.columnDef.header?.toString().toLowerCase() !== mainSearchColumn.toString().toLowerCase()) && renderFilter(header.column)}
+                                                </div>
+                                            </TableHead>
+                                        )
+                                    })}
                                 </TableRow>
-                            ))
-                        ) : (
-                            <TableRow>
-                                <TableCell
-                                    colSpan={columns.length}
-                                    className="h-24 text-center"
-                                >
-                                    No results.
-                                </TableCell>
-                            </TableRow>
-                        )}
-                    </TableBody>
-                </Table>
-            </div>
-            <div className="flex items-center justify-end space-x-2 py-4">
-                <div className="flex-1 text-sm text-muted-foreground">
-                    {table.getFilteredSelectedRowModel().rows.length} of{" "}
-                    {table.getFilteredRowModel().rows.length} row(s) selected.
-                </div>
-                <div className="space-x-2">
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="outline" size="sm">
-                                Rows per page
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent>
-                            {[5, 10, 20, 50, 100, table.getPrePaginationRowModel().rows.length].map(pageSize => (
-                                <DropdownMenuCheckboxItem
-                                    key={pageSize}
-                                    checked={table.getState().pagination.pageSize === pageSize}
-                                    onCheckedChange={() => table.setPageSize(pageSize)}
-                                >
-                                    {pageSize === table.getPrePaginationRowModel().rows.length ? 'All' : pageSize}
-                                </DropdownMenuCheckboxItem>
                             ))}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => table.previousPage()}
-                        disabled={!table.getCanPreviousPage()}
-                    >
-                        Previous
-                    </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => table.nextPage()}
-                        disabled={!table.getCanNextPage()}
-                    >
-                        Next
-                    </Button>
+                        </TableHeader>
+                        <TableBody>
+                            {
+                                table.getRowModel().rows.map((row) => (
+                                    <TableRow
+                                        key={row.id}
+                                        className="flex items-center"
+                                        data-state={row.getIsSelected() && "selected"}
+                                    >
+                                        <Checkbox
+                                            checked={row.getIsSelected()}
+                                            onCheckedChange={(value) => row.toggleSelected(!!value)}
+                                            aria-label="Select row"
+                                        />
+                                        {row.getVisibleCells().map((cell) => (
+                                            <TableCell key={cell.id}>
+                                                {flexRender(
+                                                    cell.column.columnDef.cell,
+                                                    cell.getContext()
+                                                )}
+                                            </TableCell>
+                                        ))}
+                                    </TableRow>
+                                ))
+                            }
+                        </TableBody>
+                    </Table>
                 </div>
-            </div>
+                <div className="flex items-center justify-end space-x-2 py-4">
+                    <div className="flex-1 text-sm text-muted-foreground">
+                        {table.getFilteredSelectedRowModel().rows.length} of{" "}
+                        {table.getFilteredRowModel().rows.length} row(s) selected.
+                    </div>
+                    <div className="space-x-2">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" size="sm">
+                                    Rows per page
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                                {[5, 10, 20, 50, 100, table.getPrePaginationRowModel().rows.length].map(pageSize => (
+                                    <DropdownMenuCheckboxItem
+                                        key={pageSize}
+                                        checked={table.getState().pagination.pageSize === pageSize}
+                                        onCheckedChange={() => table.setPageSize(pageSize)}
+                                    >
+                                        {pageSize === table.getPrePaginationRowModel().rows.length ? 'All' : pageSize}
+                                    </DropdownMenuCheckboxItem>
+                                ))}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => table.previousPage()}
+                            disabled={!table.getCanPreviousPage()}
+                        >
+                            Previous
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => table.nextPage()}
+                            disabled={!table.getCanNextPage()}
+                        >
+                            Next
+                        </Button>
+                    </div>
+                </div>
+            </> :  <div>
+                <div className="flex flex-col items-center justify-center h-64">
+                <p className="text-lg text-gray-500">No data to show</p>
+                </div>
+            </div>}
         </div>
     )
 }

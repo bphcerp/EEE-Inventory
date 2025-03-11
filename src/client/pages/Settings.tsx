@@ -61,13 +61,18 @@ const Settings = () => {
         </div>
       ) : (
         <div className="mt-4">
-          {data.length > 0 && (
+          {data.length > 0 ? (
             selectedOption === "Labs" ? (
               <DataTable<Laboratory> data={data as Laboratory[]} columns={columns} mainSearchColumn="name" />
             ) : (
               <DataTable<User> data={data as User[]} columns={columns} mainSearchColumn="email" />
             )
-          )}
+          ): <div>
+                <div className="flex flex-col items-center justify-center h-64">
+                <p className="text-lg text-gray-500">No data available</p>
+                <p className="text-sm text-gray-400">Please select a setting to view the data</p>
+                </div>
+            </div>}
         </div>
       )}
     </div>
