@@ -6,14 +6,19 @@
 import { Router } from 'express';
 import authRoutes from "./authRoutes.js";
 import authMiddleware from '../middleware/authMiddleware.js';
+import userRoutes from './userRoutes.js';
+import morgan from 'morgan';
 
 
 const router = Router();
 
+// Log all requests to the console
+router.use(morgan('combined'))
+
 // Sign in and sign out routes
 router.use('/auth', authRoutes);
 
-//Use authorization middleware for all routes after this
-router.use(authMiddleware);
+// User API routes
+router.use('/user',authMiddleware, userRoutes);
 
 export default router;

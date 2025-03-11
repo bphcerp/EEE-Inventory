@@ -46,10 +46,10 @@ export class InventoryItem {
     @ManyToOne(() => Laboratory, (lab) => lab.id)
     labId: Laboratory; // Foreign key to the laboratory
 
-    @Column()
+    @Column("text")
     itemCategory: string; // Category of the item
 
-    @Column()
+    @Column("text")
     itemName: string; // Name of the item
 
     @Column("text")
@@ -61,7 +61,7 @@ export class InventoryItem {
     @Column("int", { nullable: true })
     noOfLicenses?: number; // Number of licenses (if applicable)
 
-    @Column({ nullable: true })
+    @Column("text", { nullable: true })
     natureOfLicense?: string; // Nature of the license (if applicable)
 
     @Column("int", { nullable: true })
@@ -70,43 +70,43 @@ export class InventoryItem {
     @Column("decimal", { precision: 15, scale: 2 })
     itemAmountInPO: number; // Amount of the item in the purchase order
 
-    @Column({ nullable: true })
+    @Column("text", { nullable: true })
     rangeOfItemAmount?: string; // Range of the item amount (if applicable)
 
-    @Column()
+    @Column("text")
     poNumber: string; // Purchase order number
 
     @Column("date")
     poDate: Date; // Purchase order date
 
-    @Column()
+    @Column("text")
     labInchargeAtPurchase: string; // Lab in-charge at the time of purchase
 
-    @Column()
+    @Column("text")
     labTechnicianAtPurchase: string; // Lab technician at the time of purchase
 
-    @Column()
+    @Column("text")
     equipmentID: string; // Equipment ID
 
-    @Column()
+    @Column("text")
     fundingSource: string; // Source of funding
 
     @Column("date", { nullable: true })
     dateOfInstallation?: Date; // Date of installation (if applicable)
 
-    @Column()
+    @Column("text")
     vendorName: string; // Vendor name
 
     @Column("text")
     vendorAddress: string; // Vendor address
 
-    @Column()
+    @Column("text")
     vendorPOCName: string; // Vendor point of contact name
 
-    @Column()
+    @Column("text")
     vendorPOCPhoneNumber: string; // Vendor point of contact phone number
 
-    @Column()
+    @Column("text")
     vendorPOCEmailID: string; // Vendor point of contact email ID
 
     @Column("date", { nullable: true })
@@ -121,25 +121,25 @@ export class InventoryItem {
     @Column("date", { nullable: true })
     amcTo?: Date; // AMC end date (if applicable)
 
-    @Column()
+    @Column("text")
     currentLocation: string; // Current location of the item
 
-    @Column({ nullable: true })
+    @Column("text", { nullable: true })
     softcopyOfPO?: string; // Soft copy of the purchase order (if applicable)
 
-    @Column({ nullable: true })
+    @Column("text", { nullable: true })
     softcopyOfInvoice?: string; // Soft copy of the invoice (if applicable)
 
-    @Column({ nullable: true })
+    @Column("text", { nullable: true })
     softcopyOfNFA?: string; // Soft copy of the NFA (if applicable)
 
-    @Column({ nullable: true })
+    @Column("text", { nullable: true })
     softcopyOfAMC?: string; // Soft copy of the AMC (if applicable)
 
     @Column({ type: "enum", enum: ["Working", "Not Working"], nullable: true })
     status?: "Working" | "Not Working" | null; // Status of the item
 
-    @Column({ nullable: true })
+    @Column("text", { nullable: true })
     equipmentPhoto?: string; // Photo of the equipment (if applicable)
 
     @Column("text", { nullable: true })
