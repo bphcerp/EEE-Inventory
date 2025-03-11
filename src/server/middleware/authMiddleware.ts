@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { userRepository } from '../repositories/userRepository.js';
+import { userRepository } from '../repositories/repositories.js';
 const jwt = require('jsonwebtoken');
 
 // Auth Middleware to verify the token
