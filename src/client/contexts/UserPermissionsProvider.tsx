@@ -1,12 +1,14 @@
-import React, { createContext, FunctionComponent, ReactNode, useContext, useEffect, useState } from 'react';
+import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 import axios from 'axios';
+import { useLocation } from 'react-router';
 
-const UserPermissionsContext = createContext<boolean | undefined>(undefined);
+const UserPermissionsContext = createContext<boolean | undefined | null>(undefined);
 
 export const UserPermissionsProvider = ({ children } : {children : ReactNode}) => {
 
     // 0 is default (read only)
-    const [permissions, setPermissions] = useState<boolean>(false);
+    const [permissions, setPermissions] = useState<boolean | null>();
+    const location = useLocation();
 
     useEffect(() => {
         const fetchPermissions = async () => {
@@ -15,15 +17,16 @@ export const UserPermissionsProvider = ({ children } : {children : ReactNode}) =
                 setPermissions(response.data.permissions === 1);
             } catch (error) {
                 console.error('Failed to fetch user permissions:', error);
+                setPermissions(null);
             }
         };
 
         fetchPermissions();
-    }, []);
+    }, [location.pathname]);
 
     return (
         <UserPermissionsContext.Provider value={ permissions }>
-            {children}
+            { permissions !== undefined && children}
         </UserPermissionsContext.Provider>
     );
 };

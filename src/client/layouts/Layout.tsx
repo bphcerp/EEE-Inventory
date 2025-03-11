@@ -1,12 +1,25 @@
 import { Header } from "@/components/custom/Header"
-import { UserPermissionsProvider } from "@/contexts/UserPermissionsProvider"
-import { Outlet } from "react-router"
+import { useUserPermissions } from "@/contexts/UserPermissionsProvider"
+import { useEffect } from "react"
+import { Outlet, useNavigate } from "react-router"
 
 export const Layout = () => {
-    return (
-       <UserPermissionsProvider>
-        <Header />
-        <Outlet />
-       </UserPermissionsProvider>
+
+    const navigate = useNavigate()
+    const userPermissions = useUserPermissions()
+
+    useEffect(() => {
+        // Redirect to login if user is not logged in
+        console.log(userPermissions, userPermissions === null, typeof userPermissions)
+        if (userPermissions === null) {
+            navigate('/login')
+        }
+    }, [])
+
+    return userPermissions !== null && (
+        <>
+            <Header />
+            <Outlet />
+        </>
     )
 }

@@ -5,6 +5,7 @@
 
 import { Router } from 'express';
 import { signIn, signOut } from '../controllers/authController.js';
+import authMiddleware from '../middleware/authMiddleware.js';
 
 const router = Router();
 
@@ -12,5 +13,10 @@ const router = Router();
 router.post('/signin', signIn);
 //POST /api/auth/signout Route to sign out
 router.post('/signout', signOut);
+
+//GET /api/auth/check Route to check if the user is authenticated
+router.get('/check',authMiddleware, (_req, res) => {
+  res.send('Auth check successful!');
+})
 
 export default router;

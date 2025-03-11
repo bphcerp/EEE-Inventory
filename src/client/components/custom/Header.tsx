@@ -12,7 +12,7 @@ export const Header = () => {
     const handleLogout = () => {
         axios.post("/api/auth/signout")
             .then(() => {
-                navigate("/")
+                navigate("/login")
             })
             .catch(err => {
                 console.log(err)
