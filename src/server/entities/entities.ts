@@ -1,3 +1,8 @@
+/**
+ * @file entities.ts
+ * @description This file contains the entity definitions for the User, Laboratory, and InventoryItem entities used in the EEE-Inventory system.
+ */
+
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinTable, ManyToMany } from 'typeorm';
 
 // User entity

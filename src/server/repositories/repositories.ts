@@ -1,3 +1,8 @@
+/**
+ * @file repositories.ts
+ * @description This file contains the repository exports for the User, Laboratory, and InventoryItem entities used in the EEE-Inventory system.
+ */
+
 import { AppDataSource } from "../data-source.js";
 import { InventoryItem, Laboratory, User } from "../entities/entities.js";
 

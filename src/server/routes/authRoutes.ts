@@ -1,3 +1,8 @@
+/**
+ * @file authRoutes.ts
+ * @description This file contains the routes for handling user authentication operations.
+ */
+
 import { Router } from 'express';
 import { signIn, signOut } from '../controllers/authController.js';
 

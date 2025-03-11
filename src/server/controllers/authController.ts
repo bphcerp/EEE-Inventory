@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { config } from 'dotenv';
-import { userRepository } from '../repositories/repositories.js';
 import { OAuth2Client } from 'google-auth-library';
+import { userRepository } from '../repositories/repositories.js';
 
 config();
 

@@ -1,6 +1,11 @@
+/**
+ * @file authMiddleware.ts
+ * @description This file contains the middleware function to authenticate and verify JWT tokens.
+ */
+
 import { Request, Response, NextFunction } from 'express';
 import { userRepository } from '../repositories/repositories.js';
-const jwt = require('jsonwebtoken');
+import jwt from 'jsonwebtoken';
 
 // Auth Middleware to verify the token
 const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
@@ -8,15 +13,23 @@ const authMiddleware = async (req: Request, res: Response, next: NextFunction) =
     const token = req.cookies.token;
 
     if (!token) {
-        return res.status(401).json({ message: 'No token provided' });
+        res.status(401).json({ message: 'No token provided' });
+        return
     }
 
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET) as { userId: string };
+        const decoded = jwt.verify(token, process.env.JWT_SECRET!) as unknown as { userId: string };
         const user = await userRepository.findOneBy({ id: decoded.userId });
 
         if (!user) {
-            return res.status(401).json({ message: 'Invalid token' });
+            res.status(401).json({ message: 'Invalid token' });
+            return
+        }
+
+        // Check if the user has permissions ( value = 1 for read and write) to perform non-GET operations
+        if (req.method !== 'GET' && !user.permissions) {
+            res.status(403).json({ message: 'User is not allowed to perform this operation' });
+            return
         }
 
         next();
