@@ -278,7 +278,7 @@ export function DataTable<T>({ data, columns, mainSearchColumn }: DataTableProps
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="outline" size="sm">
-                                    Rows per page
+                                    Rows per page <ChevronDown />
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent>

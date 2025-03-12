@@ -3,7 +3,7 @@
  * @description This file contains the entity definitions for the User, Laboratory, and InventoryItem entities used in the EEE-Inventory system.
  */
 
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinTable, ManyToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinTable, ManyToMany, BeforeInsert, BeforeUpdate } from 'typeorm';
 
 // User entity
 @Entity()
@@ -19,8 +19,22 @@ export class User {
 
     @Column({ type: "enum", enum: [0, 1] })
     permissions: 0 | 1; // 0 for read (Technician), 1 for read and write (Admin)
-}
 
+    @ManyToMany(() => Laboratory, (laboratory) => laboratory.technicians)
+    laboratories?: Laboratory[];
+
+    // Enforce permissions based on the user type
+    // This method is called before inserting or updating a user entity
+    @BeforeInsert()
+    @BeforeUpdate()
+    enforcePermissions() {
+        if (this.type === "Admin") {
+            this.permissions = 1;
+        } else if (this.type === "Technician") {
+            this.permissions = 0;
+        }
+    }
+}
 
 // Laboratory entity
 @Entity()
@@ -31,11 +45,10 @@ export class Laboratory {
     @Column({ type: "text", unique: true })
     name: string;
 
-    // The technicians related to the laboratory
-    @ManyToMany(() => User, (user) => user.id)
+    @ManyToMany(() => User, (user) => user.laboratories)
     @JoinTable()
     technicians: User[];
-}
+}   
 
 // InventoryItem entity
 @Entity()
@@ -43,7 +56,7 @@ export class InventoryItem {
     @PrimaryGeneratedColumn()
     id: number;
 
-    @ManyToOne(() => Laboratory, (lab) => lab.id)
+    @ManyToOne(() => Laboratory)
     labId: Laboratory; // Foreign key to the laboratory
 
     @Column("text")
@@ -70,20 +83,17 @@ export class InventoryItem {
     @Column("decimal", { precision: 15, scale: 2 })
     itemAmountInPO: number; // Amount of the item in the purchase order
 
-    @Column("text", { nullable: true })
-    rangeOfItemAmount?: string; // Range of the item amount (if applicable)
-
     @Column("text")
     poNumber: string; // Purchase order number
 
     @Column("date")
     poDate: Date; // Purchase order date
 
-    @Column("text")
-    labInchargeAtPurchase: string; // Lab in-charge at the time of purchase
+    @Column("text", { nullable: true })
+    labInchargeAtPurchase?: string; // Lab in-charge at the time of purchase
 
-    @Column("text")
-    labTechnicianAtPurchase: string; // Lab technician at the time of purchase
+    @ManyToOne(() => User, { nullable: true })
+    labTechnicianAtPurchase?: User; // Lab technician at the time of purchase
 
     @Column("text")
     equipmentID: string; // Equipment ID

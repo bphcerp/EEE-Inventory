@@ -18,8 +18,8 @@ export const AppDataSource = new DataSource({
     username: POSTGRES_USER,
     password: POSTGRES_PASSWORD,
     database: POSTGRES_DB,
-    synchronize: true,
-    logging: false,
+    synchronize: true, // Change in production
+    logging: true,
     entities: [User, Laboratory, InventoryItem],
     migrations: [],
     subscribers: [],
