@@ -5,17 +5,19 @@ import {
     Column,
     ColumnDef,
     ColumnFiltersState,
+    InitialTableState,
     RowData,
     SortingState,
     VisibilityState,
     flexRender,
     getCoreRowModel,
+    getFacetedUniqueValues,
     getFilteredRowModel,
     getPaginationRowModel,
     getSortedRowModel,
     useReactTable,
 } from "@tanstack/react-table"
-import { ArrowUpDown, ChevronDown, MoreHorizontal } from "lucide-react"
+import { ChevronDown } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -23,9 +25,6 @@ import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
     DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
@@ -37,11 +36,14 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table"
+import { CSSProperties, ReactNode } from "react"
 
 interface DataTableProps<T> {
     data: T[];
     columns: ColumnDef<T>[];
     mainSearchColumn?: keyof T;
+    initialState?: InitialTableState
+    additionalButtons?: ReactNode
 }
 
 export type TableFilterType = "dropdown" | "multiselect" | "search" | "number-range" | "date-range";
@@ -56,7 +58,7 @@ declare module '@tanstack/react-table' {
     }
 }
 
-export function DataTable<T>({ data, columns, mainSearchColumn }: DataTableProps<T>) {
+export function DataTable<T>({ data, columns, mainSearchColumn, initialState, additionalButtons }: DataTableProps<T>) {
     const [sorting, setSorting] = React.useState<SortingState>([])
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
         []
@@ -68,6 +70,8 @@ export function DataTable<T>({ data, columns, mainSearchColumn }: DataTableProps
     const table = useReactTable({
         data,
         columns,
+        initialState,
+        enableColumnPinning: true,
         onSortingChange: setSorting,
         onColumnFiltersChange: setColumnFilters,
         getCoreRowModel: getCoreRowModel(),
@@ -76,6 +80,7 @@ export function DataTable<T>({ data, columns, mainSearchColumn }: DataTableProps
         getFilteredRowModel: getFilteredRowModel(),
         onColumnVisibilityChange: setColumnVisibility,
         onRowSelectionChange: setRowSelection,
+        getFacetedUniqueValues: getFacetedUniqueValues(),
         state: {
             sorting,
             columnFilters,
@@ -84,9 +89,30 @@ export function DataTable<T>({ data, columns, mainSearchColumn }: DataTableProps
         },
     })
 
+    const getCommonPinningStyles = (column: Column<T>): CSSProperties => {
+        const isPinned = column.getIsPinned()
+
+        const allColumns = table.getAllColumns();
+        const pinnedColumns = allColumns.filter((col) => col.getIsPinned());
+        const lastPinnedColumn = pinnedColumns[pinnedColumns.length - 1]
+
+        return {
+            backgroundColor: "var(--background)",
+            ...(isPinned && lastPinnedColumn === column && {
+                borderWidth: "0px 3px 0px 0px",
+                borderColor: "var(--secondary)",
+            }),
+            left: isPinned === 'left' ? `${column.getStart('left')}px` : undefined,
+            // right: isPinned === 'right' ? `${column.getAfter('right')}px` : undefined,
+            position: isPinned ? 'sticky' : 'relative',
+            width: column.getSize(),
+            zIndex: isPinned ? 10 : 0
+        }
+    }
+
     const renderFilter = (column: Column<T>) => {
         const filterType = column.columnDef.meta?.filterType;
-        const uniqueValues = Array.from(new Set(data.map(row => row[column.id as keyof T])));
+        const uniqueValues = Array.from(column.getFacetedUniqueValues().keys());
 
         switch (filterType) {
             case "dropdown":
@@ -100,7 +126,7 @@ export function DataTable<T>({ data, columns, mainSearchColumn }: DataTableProps
                                 <DropdownMenuCheckboxItem
                                     key={value as string}
                                     checked={column.getFilterValue() === value}
-                                    onCheckedChange={() => column.setFilterValue(value)}
+                                    onCheckedChange={(checked) => column.setFilterValue(checked ? value : null)}
                                 >
                                     {value as string}
                                 </DropdownMenuCheckboxItem>
@@ -137,7 +163,7 @@ export function DataTable<T>({ data, columns, mainSearchColumn }: DataTableProps
             case "search":
                 return (
                     <Input
-                        placeholder={`Search ${column.id as string}...`}
+                        placeholder='Search'
                         value={column.getFilterValue() as string}
                         onChange={(event) => column.setFilterValue(event.target.value)}
                     />
@@ -173,49 +199,57 @@ export function DataTable<T>({ data, columns, mainSearchColumn }: DataTableProps
 
 
     return (
-        <div className="w-full">
-            <div className="flex items-center py-4">
+        <div>
+            <div className="flex items-center justify-between py-4">
                 {mainSearchColumn && <Input
-                    placeholder={`Filter ${mainSearchColumn as string}...`}
+                    placeholder={`Filter ${table.getColumn(mainSearchColumn as string)?.columnDef.header?.toString()}...`}
                     value={(table.getColumn(mainSearchColumn as string)?.getFilterValue() as string) ?? ""}
                     onChange={(event) =>
                         table.getColumn(mainSearchColumn as string)?.setFilterValue(event.target.value)
                     }
                     className="max-w-sm"
                 />}
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="outline" className="ml-auto">
-                            Columns <ChevronDown />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        {table
-                            .getAllColumns()
-                            .filter((column) => column.getCanHide())
-                            .map((column) => {
-                                return (
-                                    <DropdownMenuCheckboxItem
-                                        key={column.id}
-                                        className="capitalize"
-                                        checked={column.getIsVisible()}
-                                        onCheckedChange={(value) =>
-                                            column.toggleVisibility(!!value)
-                                        }
-                                    >
-                                        {column.id}
-                                    </DropdownMenuCheckboxItem>
-                                )
-                            })}
-                    </DropdownMenuContent>
-                </DropdownMenu>
+                <div className="flex items-center space-x-2">
+                    {additionalButtons}
+                    <div>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" className="ml-auto">
+                                    Columns <ChevronDown />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <div className="grid max-grid-cols-3 max-h-56 overflow-y-auto">
+                                    {table
+                                        .getAllColumns()
+                                        .filter((column) => column.getCanHide())
+                                        .map((column) => {
+                                            return (
+                                                <DropdownMenuCheckboxItem
+                                                    key={column.id}
+                                                    className="capitalize"
+                                                    checked={column.getIsVisible()}
+                                                    onSelect={(e) => e.preventDefault()}
+                                                    onCheckedChange={(value) =>
+                                                        column.toggleVisibility(!!value)
+                                                    }
+                                                >
+                                                    {column.columnDef.header?.toString()}
+                                                </DropdownMenuCheckboxItem>
+                                            )
+                                        })}
+                                </div>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+                </div>
             </div>
-            {table.getVisibleLeafColumns().length && table.getRowModel().rows?.length ? <>
-                <div className="rounded-md border p-2">
-                    <Table>
-                        <TableHeader>
-                            {table.getHeaderGroups().map((headerGroup) => (
-                                <TableRow className="flex items-center" key={headerGroup.id}>
+            {!data.length ? <div className="rounded-md border p-2">
+                <Table className={`w-${table.getTotalSize()}`}>
+                    <TableHeader>
+                        {table.getHeaderGroups().map((headerGroup) => (
+                            <TableRow key={headerGroup.id}>
+                                {/* <TableHead className="z-1 bg-(--background) sticky left-0 w-5">
                                     <Checkbox
                                         checked={
                                             table.getIsAllPageRowsSelected() ||
@@ -224,98 +258,101 @@ export function DataTable<T>({ data, columns, mainSearchColumn }: DataTableProps
                                         onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
                                         aria-label="Select all"
                                     />
-                                    {headerGroup.headers.map((header) => {
-                                        return (
-                                            <TableHead className="flex items-center" key={header.id}>
+                                </TableHead> */}
+                                {headerGroup.headers.map((header) => {
+                                    return (
+                                        <TableHead colSpan={header.colSpan} style={{ ...getCommonPinningStyles(header.column) }} key={header.id}>
                                                 {header.isPlaceholder
                                                     ? null
                                                     : flexRender(
                                                         header.column.columnDef.header,
                                                         header.getContext()
                                                     )}
-                                                <div className="my-2 max-w-fit">
-                                                    {(!mainSearchColumn || header.column.columnDef.header?.toString().toLowerCase() !== mainSearchColumn.toString().toLowerCase()) && renderFilter(header.column)}
-                                                </div>
-                                            </TableHead>
-                                        )
-                                    })}
-                                </TableRow>
-                            ))}
-                        </TableHeader>
-                        <TableBody>
-                            {
-                                table.getRowModel().rows.map((row) => (
-                                    <TableRow
-                                        key={row.id}
-                                        className="flex items-center"
-                                        data-state={row.getIsSelected() && "selected"}
-                                    >
+                                                {(!mainSearchColumn || header.column.columnDef.header?.toString().toLowerCase() !== mainSearchColumn.toString().toLowerCase()) && renderFilter(header.column)}
+                                        </TableHead>
+                                    )
+                                })}
+                            </TableRow>
+                        ))}
+                    </TableHeader>
+                    {table.getVisibleLeafColumns().length ? <TableBody>
+                        {
+                            table.getRowModel().rows.map((row) => (
+                                <TableRow
+                                    key={row.id}
+                                    data-state={row.getIsSelected() && "selected"}
+                                >
+                                    <TableCell className="z-1 bg-(--background) sticky left-0 w-5">
                                         <Checkbox
                                             checked={row.getIsSelected()}
                                             onCheckedChange={(value) => row.toggleSelected(!!value)}
                                             aria-label="Select row"
                                         />
-                                        {row.getVisibleCells().map((cell) => (
-                                            <TableCell key={cell.id}>
-                                                {flexRender(
-                                                    cell.column.columnDef.cell,
-                                                    cell.getContext()
-                                                )}
-                                            </TableCell>
-                                        ))}
-                                    </TableRow>
-                                ))
-                            }
-                        </TableBody>
-                    </Table>
-                </div>
-                <div className="flex items-center justify-end space-x-2 py-4">
-                    <div className="flex-1 text-sm text-muted-foreground">
-                        {table.getFilteredSelectedRowModel().rows.length} of{" "}
-                        {table.getFilteredRowModel().rows.length} row(s) selected.
-                    </div>
-                    <div className="space-x-2">
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="outline" size="sm">
-                                    Rows per page <ChevronDown />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent>
-                                {[5, 10, 20, 50, 100, table.getPrePaginationRowModel().rows.length].map(pageSize => (
-                                    <DropdownMenuCheckboxItem
-                                        key={pageSize}
-                                        checked={table.getState().pagination.pageSize === pageSize}
-                                        onCheckedChange={() => table.setPageSize(pageSize)}
-                                    >
-                                        {pageSize === table.getPrePaginationRowModel().rows.length ? 'All' : pageSize}
-                                    </DropdownMenuCheckboxItem>
-                                ))}
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => table.previousPage()}
-                            disabled={!table.getCanPreviousPage()}
-                        >
-                            Previous
-                        </Button>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => table.nextPage()}
-                            disabled={!table.getCanNextPage()}
-                        >
-                            Next
-                        </Button>
-                    </div>
-                </div>
-            </> :  <div>
-                <div className="flex flex-col items-center justify-center h-64">
-                <p className="text-lg text-gray-500">No data to show</p>
+                                    </TableCell>
+                                    {row.getVisibleCells().map((cell) => (
+                                        <TableCell style={{ ...getCommonPinningStyles(cell.column) }} key={cell.id}>
+                                            {flexRender(
+                                                cell.column.columnDef.cell,
+                                                cell.getContext()
+                                            )}
+                                        </TableCell>
+                                    ))}
+                                </TableRow>
+                            ))
+                        }
+                    </TableBody> : <div>
+                        <div className="flex flex-col items-center justify-center">
+                            <p className="text-lg text-gray-500">No columns to show</p>
+                        </div>
+                    </div>}
+                </Table>
+            </div> : <div>
+                <div className="flex flex-col items-center justify-center border-1 border-primary rounded-md h-40">
+                    <p className="text-lg text-gray-500">No data</p>
                 </div>
             </div>}
+            <div className="flex items-center justify-end space-x-2 py-4">
+                <div className="flex-1 text-sm text-muted-foreground">
+                    {table.getFilteredSelectedRowModel().rows.length} of{" "}
+                    {table.getFilteredRowModel().rows.length} row(s) selected.
+                </div>
+                <div className="space-x-2">
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="sm">
+                                Rows per page <ChevronDown />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                            {[5, 10, 20, 50, 100, table.getPrePaginationRowModel().rows.length].map(pageSize => (
+                                <DropdownMenuCheckboxItem
+                                    key={pageSize}
+                                    checked={table.getState().pagination.pageSize === pageSize}
+                                    onCheckedChange={() => table.setPageSize(pageSize)}
+                                >
+                                    {pageSize === table.getPrePaginationRowModel().rows.length ? 'All' : pageSize}
+                                </DropdownMenuCheckboxItem>
+                            ))}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => table.previousPage()}
+                        disabled={!table.getCanPreviousPage()}
+                    >
+                        Previous
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => table.nextPage()}
+                        disabled={!table.getCanNextPage()}
+                    >
+                        Next
+                    </Button>
+                </div>
+            </div>
         </div>
     )
 }

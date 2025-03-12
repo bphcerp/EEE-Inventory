@@ -10,7 +10,6 @@ export const Layout = () => {
 
     useEffect(() => {
         // Redirect to login if user is not logged in
-        console.log(userPermissions, userPermissions === null, typeof userPermissions)
         if (userPermissions === null) {
             navigate('/login')
         }

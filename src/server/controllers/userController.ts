@@ -23,25 +23,47 @@ const JWT_SECRET = process.env.JWT_SECRET!;
 // Get User Permissions Controller
 export const getUserPermissions = async (req: Request, res: Response) => {
     try {
-        const token = req.cookies.token;
-        const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
-        const user = await userRepository.findOneBy({ id: decoded.userId });
-
-        if (!user) {
-            res.status(404).json({ message: 'User not found!' });
-            return
-        }
-
-        res.status(200).json({ permissions: user.permissions });
+        res.status(200).json({ permissions: req.user!.permissions });
     } catch (error) {
         res.status(500).json({ message: 'Error fetching user permissions', error: (error as Error).message });
         console.error(error);
     }
 };
 
+// Get All Users Controller
+export const getAllUsers = async (req: Request, res: Response) => {
+    try {
+        const users = await userRepository.find({
+            relations: ['laboratories']
+        });
+
+        res.status(200).json(users);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching user permissions', error: (error as Error).message });
+        console.error(error);
+    }
+};
+
+// Get User Labs Controller
+// This controller assumes you have passed the auth middleware before this
+// The user object is available in the request object after the middleware is executed
+export const getUserLabs = async (req: Request, res: Response) => {
+    try {
+        const user = await userRepository.findOne({
+            where: { id: req.user!.id },
+            relations: ['laboratories']
+        });
+
+        res.status(200).json(user!.laboratories);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching laboratories', error: (error as Error).message });
+        console.error(error);
+    }
+};
+
 // Add User Controller
 export const addUser = async (req: Request, res: Response) => {
-    const { email, type, permissions } = req.body;
+    const { email, permissions } = req.body;
 
     const queryRunner = AppDataSource.createQueryRunner();
     await queryRunner.connect();
@@ -50,7 +72,6 @@ export const addUser = async (req: Request, res: Response) => {
     try {
         const user = new User();
         user.email = email;
-        user.type = type;
         user.permissions = permissions;
         await queryRunner.manager.save(user);
 
@@ -67,7 +88,7 @@ export const addUser = async (req: Request, res: Response) => {
 
 // Modify User Controller
 export const modifyUser = async (req: Request, res: Response) => {
-    const { id, email, type, permissions } = req.body;
+    const { id, email, permissions } = req.body;
 
     const queryRunner = AppDataSource.createQueryRunner();
     await queryRunner.connect();
@@ -83,7 +104,6 @@ export const modifyUser = async (req: Request, res: Response) => {
         }
 
         user.email = email;
-        user.type = type;
         user.permissions = permissions;
         await queryRunner.manager.save(user);
 

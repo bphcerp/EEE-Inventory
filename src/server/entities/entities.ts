@@ -14,26 +14,11 @@ export class User {
     @Column({ type: "text", unique: true })
     email: string;
 
-    @Column({ type: "enum", enum: ["Admin", "Technician"] })
-    type: "Admin" | "Technician";
-
     @Column({ type: "enum", enum: [0, 1] })
     permissions: 0 | 1; // 0 for read (Technician), 1 for read and write (Admin)
 
     @ManyToMany(() => Laboratory, (laboratory) => laboratory.technicians)
     laboratories?: Laboratory[];
-
-    // Enforce permissions based on the user type
-    // This method is called before inserting or updating a user entity
-    @BeforeInsert()
-    @BeforeUpdate()
-    enforcePermissions() {
-        if (this.type === "Admin") {
-            this.permissions = 1;
-        } else if (this.type === "Technician") {
-            this.permissions = 0;
-        }
-    }
 }
 
 // Laboratory entity

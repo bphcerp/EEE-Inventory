@@ -1,14 +1,16 @@
 import { Menubar, MenubarMenu, MenubarTrigger, MenubarContent, MenubarItem } from "@/components/ui/menubar";
-import { Home, Layers, Settings, Info } from "lucide-react";
+import { Home, Layers, Settings, Info, ChartColumn } from "lucide-react";
 import { Link } from "react-router";
 import { Input } from "../ui/input";
 import { ChangeEvent, useEffect, useState } from "react";
 import FuzzySearch from 'fuzzy-search';
 import { Laboratory } from "src/server/entities/entities";
+import { useUserPermissions } from "@/contexts/UserPermissionsProvider";
 
 export const NavBar = () => {
   const [labs, setLabs] = useState<Laboratory[]>([])
   const [filteredLabs, setFilteredLabs] = useState<Laboratory[]>([])
+  const userPermissions = useUserPermissions()
 
   useEffect(() => {
     fetch('/api/labs').then(res => res.json()).then(data => {
@@ -39,6 +41,14 @@ export const NavBar = () => {
       </MenubarMenu>
 
       <MenubarMenu>
+        <MenubarTrigger>
+          <Link to="/stats" className="flex items-center gap-2">
+            <ChartColumn className="w-5 h-5" /> Stats
+          </Link>
+        </MenubarTrigger>
+      </MenubarMenu>
+
+      <MenubarMenu>
         <MenubarTrigger className="hover:cursor-pointer">
           <Layers className="w-5 h-5 mr-2" /> Labs
         </MenubarTrigger>
@@ -58,11 +68,11 @@ export const NavBar = () => {
         </MenubarContent>
       </MenubarMenu>
 
-      <MenubarMenu>
+      { userPermissions ? <MenubarMenu>
         <MenubarTrigger>
           <Link to='/settings' className="flex"><Settings className="w-5 h-5 mr-2" /> Settings</Link>
         </MenubarTrigger>
-      </MenubarMenu>
+      </MenubarMenu> : <></>}
 
       <MenubarMenu>
         <MenubarTrigger>

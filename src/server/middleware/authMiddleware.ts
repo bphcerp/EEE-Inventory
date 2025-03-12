@@ -6,6 +6,15 @@
 import { Request, Response, NextFunction } from 'express';
 import { userRepository } from '../repositories/repositories.js';
 import jwt from 'jsonwebtoken';
+import { User } from '../entities/entities.js';
+
+declare global {
+    namespace Express {
+      interface Request {
+        user?: User
+      }
+    }
+  }
 
 // Auth Middleware to verify the token
 const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
@@ -31,6 +40,8 @@ const authMiddleware = async (req: Request, res: Response, next: NextFunction) =
             res.status(403).json({ message: 'User is not allowed to perform this operation' });
             return
         }
+
+        req.user = user;
 
         next();
     } catch (error) {
