@@ -91,22 +91,21 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
 
     const getCommonPinningStyles = (column: Column<T>): CSSProperties => {
         const isPinned = column.getIsPinned()
+        const isLastLeftPinnedColumn =
+            isPinned === 'left' && column.getIsLastColumn('left')
 
-        const allColumns = table.getAllColumns();
-        const pinnedColumns = allColumns.filter((col) => col.getIsPinned());
-        const lastPinnedColumn = pinnedColumns[pinnedColumns.length - 1]
+        if (isPinned) console.log(column.getStart('left'))
 
         return {
             backgroundColor: "var(--background)",
-            ...(isPinned && lastPinnedColumn === column && {
+            ...(isPinned && isLastLeftPinnedColumn && {
                 borderWidth: "0px 3px 0px 0px",
                 borderColor: "var(--secondary)",
             }),
-            left: isPinned === 'left' ? `${column.getStart('left')}px` : undefined,
-            // right: isPinned === 'right' ? `${column.getAfter('right')}px` : undefined,
+            left: isPinned === 'left' ? `${column.getStart('left') + 20}px` : undefined,
             position: isPinned ? 'sticky' : 'relative',
             width: column.getSize(),
-            zIndex: isPinned ? 10 : 0
+            zIndex: isPinned ? 1 : 0,
         }
     }
 
@@ -244,12 +243,12 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
                     </div>
                 </div>
             </div>
-            {!data.length ? <div className="rounded-md border p-2">
-                <Table className={`w-${table.getTotalSize()}`}>
+            {data.length ? <div className="rounded-md border p-2">
+                <Table className="table-fixed">
                     <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (
                             <TableRow key={headerGroup.id}>
-                                {/* <TableHead className="z-1 bg-(--background) sticky left-0 w-5">
+                                <TableHead className="z-2 bg-(--background) sticky left-0 w-1">
                                     <Checkbox
                                         checked={
                                             table.getIsAllPageRowsSelected() ||
@@ -258,10 +257,11 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
                                         onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
                                         aria-label="Select all"
                                     />
-                                </TableHead> */}
+                                </TableHead>
                                 {headerGroup.headers.map((header) => {
                                     return (
                                         <TableHead colSpan={header.colSpan} style={{ ...getCommonPinningStyles(header.column) }} key={header.id}>
+                                            <div className="flex flex-col items-start gap-y-2 py-2">
                                                 {header.isPlaceholder
                                                     ? null
                                                     : flexRender(
@@ -269,6 +269,7 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
                                                         header.getContext()
                                                     )}
                                                 {(!mainSearchColumn || header.column.columnDef.header?.toString().toLowerCase() !== mainSearchColumn.toString().toLowerCase()) && renderFilter(header.column)}
+                                            </div>
                                         </TableHead>
                                     )
                                 })}
