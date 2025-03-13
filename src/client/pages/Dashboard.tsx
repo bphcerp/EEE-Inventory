@@ -69,10 +69,19 @@ export const Dashboard = () => {
     }, [userPermissions]);
 
     return (
-        <DataTable<InventoryItem> data={inventoryData} columns={columns} mainSearchColumn="itemName" initialState={{
-            columnPinning: {
-                left: ['itemName', 'itemCategory', 'poNumber']
-            }
-        }} additionalButtons={userPermissions ? <Button>Add Item</Button> : <Button variant="link" onClick={() => setShowAllLabs(!showAllLabs)}>Show {showAllLabs ? 'My Labs' : 'All Labs'}</Button>} />
+        <div className="dashboard p-2">
+            {loading ? (
+                <div className="flex flex-col w-full h-full space-y-2 my-2">
+                    <Skeleton className="w-full h-8" />
+                    <Skeleton className="w-full h-96" />
+                </div>
+            ) : (
+                <DataTable<InventoryItem> data={inventoryData} columns={columns} mainSearchColumn="itemName" initialState={{
+                    columnPinning: {
+                        left: ['itemName', 'itemCategory', 'poNumber']
+                    }
+                }} additionalButtons={userPermissions ? <Button>Add Item</Button> : <Button variant="link" onClick={() => setShowAllLabs(!showAllLabs)}>Show {showAllLabs ? 'My Labs' : 'All Labs'}</Button>} />
+            )}
+        </div>
     );
 }

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { getUserPermissions, addUser, modifyUser, deleteUser, getUserLabs, getAllUsers } from '../controllers/userController.js';
-import checkAdminMiddleware from '../middleware/checkAdminMiddleware.js';
+import checkAdminMiddlewareforGET from '../middleware/checkAdminMiddlewareforGet.js';
 
 const router = Router();
 
@@ -9,7 +9,7 @@ router.get('/permissions', getUserPermissions);
 
 // GET /users Route to get all users
 // Needs Admin role in permissions ( user.permissions = 1 )
-router.get('/',checkAdminMiddleware,getAllUsers);
+router.get('/',checkAdminMiddlewareforGET,getAllUsers);
 
 // GET /users/labs Route to get user labs
 router.get('/labs', getUserLabs);
