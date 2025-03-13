@@ -11,6 +11,7 @@ import { UserPermissionsProvider, useUserPermissions } from './contexts/UserPerm
 import LoginPage from './pages/Login'
 import { Dashboard } from './pages/Dashboard'
 import NotFound from './pages/NotFound'
+import { Toaster } from 'sonner'
 
 const RedirectHandler = () => {
   const userPermissions = useUserPermissions();
@@ -22,6 +23,7 @@ createRoot(document.getElementById('root')!).render(
     <BrowserRouter>
       <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
         <UserPermissionsProvider>
+          <Toaster richColors position='top-center' />
           <Routes>
             <Route path="/" element={<RedirectHandler />} />
             <Route path='/login' element={<LoginPage />} />

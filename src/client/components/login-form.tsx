@@ -5,6 +5,7 @@ import { useGoogleLogin } from '@react-oauth/google'
 import { FormEvent } from "react"
 import axios from "axios"
 import { useNavigate } from "react-router"
+import { toast } from "sonner"
 
 export function LoginForm({
   className,
@@ -20,7 +21,8 @@ export function LoginForm({
         navigate('/dashboard')
       }
       ).catch(err => {
-        console.error(err)
+        toast.error("Error signing in!")
+        console.error({ message: "Error signing in", err })
       }
       )
     }

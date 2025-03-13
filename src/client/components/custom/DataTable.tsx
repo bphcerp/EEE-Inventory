@@ -94,8 +94,6 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
         const isLastLeftPinnedColumn =
             isPinned === 'left' && column.getIsLastColumn('left')
 
-        if (isPinned) console.log(column.getStart('left'))
-
         return {
             backgroundColor: "var(--background)",
             ...(isPinned && isLastLeftPinnedColumn && {

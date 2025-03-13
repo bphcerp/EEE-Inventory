@@ -5,6 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { InventoryItem } from "src/server/entities/entities";
 import { Button } from "@/components/ui/button";
 import { ColumnDef } from "@tanstack/react-table";
+import { toast } from "sonner";
 
 export const Dashboard = () => {
     const userPermissions = useUserPermissions();
@@ -60,7 +61,8 @@ export const Dashboard = () => {
                 setInventoryData(data);
             })
             .catch(error => {
-                console.error('Error fetching inventory data:', error);
+                toast.error('Error fetching inventory data:')
+                console.error({ message : 'Error fetching inventory data:', error });
             })
             .finally(() => {
                 setLoading(false);

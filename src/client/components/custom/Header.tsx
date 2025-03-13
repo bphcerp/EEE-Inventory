@@ -4,6 +4,7 @@ import { NavBar } from "./NavBar"
 import axios from "axios"
 import { useNavigate } from "react-router"
 import { Button } from "../ui/button"
+import { toast } from "sonner"
 
 export const Header = () => {
 
@@ -15,7 +16,8 @@ export const Header = () => {
                 navigate("/login")
             })
             .catch(err => {
-                console.log(err)
+                toast.error("Error signing out!")
+                console.error({ message: "Error signing out", err })
             })
     }
 

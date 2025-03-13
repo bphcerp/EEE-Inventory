@@ -6,6 +6,7 @@ import { ChangeEvent, useEffect, useState } from "react";
 import FuzzySearch from 'fuzzy-search';
 import { Laboratory } from "src/server/entities/entities";
 import { useUserPermissions } from "@/contexts/UserPermissionsProvider";
+import { toast } from "sonner";
 
 export const NavBar = () => {
   const [labs, setLabs] = useState<Laboratory[]>([])
@@ -17,7 +18,10 @@ export const NavBar = () => {
       setLabs(data);
       setFilteredLabs(data);
     })
-      .catch(err => console.error(err));
+      .catch(err => {
+        toast.error("Error fetching labs")
+        console.error({ message: "Error fetching labs", err })
+      });
   }, [])
 
   const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
