@@ -27,13 +27,6 @@ const Settings = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!userPermissions) {
-      // IRedirect to the dashboard if the user has no read and write permissions (user.permissions = 1 )
-      navigate('/dashboard');
-    }
-  }, [userPermissions]);
-
-  useEffect(() => {
     if (selectedOption) {
       if (!['Labs', 'Users'].includes(selectedOption)){
         navigate("", { replace : true })

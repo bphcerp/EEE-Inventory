@@ -1,5 +1,5 @@
 import { LogOut } from "lucide-react"
-import { ModeToggle } from "../mode-toggle"
+import { ModeToggle } from "./ModeToggle"
 import { NavBar } from "./NavBar"
 import axios from "axios"
 import { useNavigate } from "react-router"

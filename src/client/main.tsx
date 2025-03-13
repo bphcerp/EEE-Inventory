@@ -2,8 +2,8 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import './styles/scrollbar.css'
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router'
-import { ThemeProvider } from './components/theme-provider'
+import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router'
+import { ThemeProvider } from './components/custom/ThemeProvider'
 import { Layout } from './layouts/Layout'
 import About from './pages/About'
 import Settings from './pages/Settings'
@@ -12,10 +12,16 @@ import LoginPage from './pages/Login'
 import { Dashboard } from './pages/Dashboard'
 import NotFound from './pages/NotFound'
 import { Toaster } from 'sonner'
+import NotAllowed from './pages/NotAllowed'
 
 const RedirectHandler = () => {
   const userPermissions = useUserPermissions();
-  return userPermissions !== null ? <Navigate to="/dashboard" replace /> : <Navigate to="/login"  replace/>;
+  return userPermissions !== null ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />;
+}
+
+const AdminOnlyRoutes = () => {
+  const userPermissions = useUserPermissions();
+  return userPermissions ? <Outlet /> : <NotAllowed />
 }
 
 createRoot(document.getElementById('root')!).render(
@@ -23,14 +29,16 @@ createRoot(document.getElementById('root')!).render(
     <BrowserRouter>
       <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
         <UserPermissionsProvider>
-          <Toaster richColors position='top-center' />
+          <Toaster richColors position='top-center' closeButton />
           <Routes>
             <Route path="/" element={<RedirectHandler />} />
             <Route path='/login' element={<LoginPage />} />
             <Route element={<Layout />}>
               <Route path='/dashboard' element={<Dashboard />} />
               <Route path='/about' element={<About />} />
-              <Route path='/settings' element={<Settings />} />
+              <Route element={<AdminOnlyRoutes/>}>
+                <Route path='/settings' element={<Settings />} />
+              </Route>
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

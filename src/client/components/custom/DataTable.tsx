@@ -242,11 +242,11 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
                 </div>
             </div>
             {data.length ? <div className="rounded-md border p-2">
-                <Table className="table-fixed">
+                <Table className='table-fixed'>
                     <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (
                             <TableRow key={headerGroup.id}>
-                                <TableHead className="z-2 bg-(--background) sticky left-0 w-1">
+                                <TableHead className="z-2 bg-(--background) sticky left-0 h-full w-5">
                                     <Checkbox
                                         checked={
                                             table.getIsAllPageRowsSelected() ||
@@ -281,7 +281,7 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
                                     key={row.id}
                                     data-state={row.getIsSelected() && "selected"}
                                 >
-                                    <TableCell className="z-1 bg-(--background) sticky left-0 w-5">
+                                    <TableCell className="z-2 bg-(--background) sticky left-0 w-5">
                                         <Checkbox
                                             checked={row.getIsSelected()}
                                             onCheckedChange={(value) => row.toggleSelected(!!value)}

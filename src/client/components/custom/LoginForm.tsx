@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { ModeToggle } from "./mode-toggle"
+import { ModeToggle } from "./ModeToggle.js"
 import { useGoogleLogin } from '@react-oauth/google'
 import { FormEvent } from "react"
 import axios from "axios"

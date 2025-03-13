@@ -1,4 +1,4 @@
-import { LoginForm } from "@/components/login-form"
+import { LoginForm } from "@/components/custom/LoginForm"
 import { useUserPermissions } from "@/contexts/UserPermissionsProvider"
 import { GoogleOAuthProvider } from "@react-oauth/google"
 import { useEffect } from "react"
