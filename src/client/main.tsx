@@ -13,6 +13,7 @@ import { Dashboard } from './pages/Dashboard'
 import NotFound from './pages/NotFound'
 import { Toaster } from 'sonner'
 import NotAllowed from './pages/NotAllowed'
+import './globalFetch'
 
 const RedirectHandler = () => {
   const userPermissions = useUserPermissions();

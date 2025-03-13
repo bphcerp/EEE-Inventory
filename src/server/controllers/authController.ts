@@ -30,7 +30,7 @@ export const signIn = async (req: Request, res: Response) => {
 
         res.status(200).json({ message: 'Signed in successfully' });
     } catch (error) {
-        res.status(500).json({ message: 'Error signing in', error: (error as Error).message });
+        res.status(500).json({ message: 'Error signing in', error });
         console.error(error);
     }
 };

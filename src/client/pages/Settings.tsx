@@ -7,6 +7,9 @@ import { useUserPermissions } from "@/contexts/UserPermissionsProvider";
 import { useNavigate, useSearchParams } from "react-router";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ColumnDef } from "@tanstack/react-table";
+import AddUserDialog from "@/components/custom/AddUserDialog";
+import axios, { AxiosError } from "axios";
+import { toast } from "sonner";
 
 const labColumns: ColumnDef<Laboratory>[] = [
   { accessorKey: 'name', header: 'Name', meta: { filterType: 'search' as TableFilterType } },
@@ -26,7 +29,7 @@ const Settings = () => {
   const userPermissions = useUserPermissions()
   const navigate = useNavigate();
 
-  useEffect(() => {
+  const fetchData = () => {
     if (selectedOption) {
       if (!['Labs', 'Users'].includes(selectedOption)){
         navigate("", { replace : true })
@@ -41,7 +44,23 @@ const Settings = () => {
           setLoading(false);
         });
     }
+  }
+
+  useEffect(() => {
+    fetchData()
   }, [selectedOption]);
+
+  const handleAddUser = (newUser : Partial<User> & { labIds: string[] } ) => {
+    axios.post('/api/users',newUser)
+    .then(() => {
+      fetchData()
+      toast.success("User added")
+    })
+    .catch((err) => {
+      console.error({ message: "Error adding user", err })
+      toast.error(((err as AxiosError).response?.data as any).message ?? "Error adding user")
+    });
+  };
 
   return (
     <div className="p-4">
@@ -58,7 +77,9 @@ const Settings = () => {
             <SelectItem value="Users">Users</SelectItem>
           </SelectContent>
         </Select>
-        {selectedOption && <Button >Add {selectedOption?.slice(0, -1)}</Button>}
+        {selectedOption && selectedOption === "Users" && (
+          <AddUserDialog onAddUser={handleAddUser} />
+        )}
       </div>
 
       {loading ? (

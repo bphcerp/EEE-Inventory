@@ -216,7 +216,7 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                                <div className="grid max-grid-cols-3 max-h-56 overflow-y-auto">
+                                <div className="grid max-h-56 overflow-y-auto">
                                     {table
                                         .getAllColumns()
                                         .filter((column) => column.getCanHide())
@@ -226,6 +226,7 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
                                                     key={column.id}
                                                     className="capitalize"
                                                     checked={column.getIsVisible()}
+                                                    //To stop the dropdown from closing on click (onSelect)
                                                     onSelect={(e) => e.preventDefault()}
                                                     onCheckedChange={(value) =>
                                                         column.toggleVisibility(!!value)

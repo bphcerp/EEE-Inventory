@@ -9,6 +9,7 @@ import { AppDataSource } from '../data-source.js';
 import jwt from 'jsonwebtoken';
 import { config } from 'dotenv';
 import { User } from '../entities/entities.js';
+import { AnyError, In } from 'typeorm';
 
 config();
 
@@ -25,7 +26,7 @@ export const getUserPermissions = async (req: Request, res: Response) => {
     try {
         res.status(200).json({ permissions: req.user!.permissions });
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching user permissions', error: (error as Error).message });
+        res.status(500).json({ message: 'Error fetching user permissions', error });
         console.error(error);
     }
 };
@@ -39,7 +40,7 @@ export const getAllUsers = async (req: Request, res: Response) => {
 
         res.status(200).json(users);
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching user permissions', error: (error as Error).message });
+        res.status(500).json({ message: 'Error fetching user permissions', error });
         console.error(error);
     }
 };
@@ -56,14 +57,14 @@ export const getUserLabs = async (req: Request, res: Response) => {
 
         res.status(200).json(user!.laboratories);
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching laboratories', error: (error as Error).message });
+        res.status(500).json({ message: 'Error fetching laboratories', error });
         console.error(error);
     }
 };
 
 // Add User Controller
 export const addUser = async (req: Request, res: Response) => {
-    const { email, permissions } = req.body;
+    const { email, permissions, labIds } = req.body;
 
     const queryRunner = AppDataSource.createQueryRunner();
     await queryRunner.connect();
@@ -73,13 +74,14 @@ export const addUser = async (req: Request, res: Response) => {
         const user = new User();
         user.email = email;
         user.permissions = permissions;
+        user.laboratories = (labIds as string[]).map((id) => ({ id })) as any
         await queryRunner.manager.save(user);
 
         await queryRunner.commitTransaction();
         res.status(201).json({ message: 'User added successfully' });
     } catch (error) {
         await queryRunner.rollbackTransaction();
-        res.status(500).json({ message: 'Error adding user', error: (error as Error).message });
+        res.status(500).json({ message: (error as any)?.code === '23505' ? 'User already exists' : 'Error adding user', error });
         console.error(error);
     } finally {
         await queryRunner.release();
@@ -111,7 +113,7 @@ export const modifyUser = async (req: Request, res: Response) => {
         res.status(200).json({ message: 'User modified successfully' });
     } catch (error) {
         await queryRunner.rollbackTransaction();
-        res.status(500).json({ message: 'Error modifying user', error: (error as Error).message });
+        res.status(500).json({ message: 'Error modifying user', error });
         console.error(error);
     } finally {
         await queryRunner.release();
@@ -141,7 +143,7 @@ export const deleteUser = async (req: Request, res: Response) => {
         res.status(200).json({ message: 'User deleted successfully' });
     } catch (error) {
         await queryRunner.rollbackTransaction();
-        res.status(500).json({ message: 'Error deleting user', error: (error as Error).message });
+        res.status(500).json({ message: 'Error deleting user', error });
         console.error(error);
     } finally {
         await queryRunner.release();
