@@ -5,13 +5,14 @@ import axios from "axios"
 import { useNavigate } from "react-router"
 import { Button } from "../ui/button"
 import { toast } from "sonner"
+import api from "@/axiosInterceptor"
 
 export const Header = () => {
 
     const navigate = useNavigate()
 
     const handleLogout = () => {
-        axios.post("/api/auth/signout")
+        api.post("/api/auth/signout")
             .then(() => {
                 navigate("/login")
             })

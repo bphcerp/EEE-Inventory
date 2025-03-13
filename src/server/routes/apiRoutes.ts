@@ -20,9 +20,15 @@ router.use(morgan('combined'))
 router.use('/auth', authRoutes);
 
 // User API routes
-router.use('/users',authMiddleware, userRoutes);
+router.use('/users', authMiddleware, userRoutes);
 
 // Lab API routes
-router.use('/labs',authMiddleware, labRoutes);
+router.use('/labs', authMiddleware, labRoutes);
+
+//404 for all non-existing routes
+router.use((req, res) => {
+    res.status(404).json({ message: "404 - Not Found" });
+});
+
 
 export default router;

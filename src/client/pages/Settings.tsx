@@ -10,6 +10,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import AddUserDialog from "@/components/custom/AddUserDialog";
 import axios, { AxiosError } from "axios";
 import { toast } from "sonner";
+import api from "@/axiosInterceptor";
 
 const labColumns: ColumnDef<Laboratory>[] = [
   { accessorKey: 'name', header: 'Name', meta: { filterType: 'search' as TableFilterType } },
@@ -37,9 +38,8 @@ const Settings = () => {
         return
       }
       setLoading(true);
-      fetch(`/api/${selectedOption.toLowerCase()}`)
-        .then((response) => response.json())
-        .then((data) => {
+      api(`/api/${selectedOption.toLowerCase()}`)
+        .then(({data}) => {
           setData(data);
           setLoading(false);
         });
@@ -51,7 +51,7 @@ const Settings = () => {
   }, [selectedOption]);
 
   const handleAddUser = (newUser : Partial<User> & { labIds: string[] } ) => {
-    axios.post('/api/users',newUser)
+    api.post('/api/users',newUser)
     .then(() => {
       fetchData()
       toast.success("User added")

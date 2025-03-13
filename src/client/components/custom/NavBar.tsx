@@ -7,6 +7,8 @@ import FuzzySearch from 'fuzzy-search';
 import { Laboratory } from "src/server/entities/entities";
 import { useUserPermissions } from "@/contexts/UserPermissionsProvider";
 import { toast } from "sonner";
+import axios from "axios";
+import api from "@/axiosInterceptor";
 
 export const NavBar = () => {
   const [labs, setLabs] = useState<Laboratory[]>([])
@@ -14,7 +16,7 @@ export const NavBar = () => {
   const userPermissions = useUserPermissions()
 
   useEffect(() => {
-    fetch('/api/labs').then(res => res.json()).then(data => {
+    api('/api/labs').then(({data}) => {
       setLabs(data);
       setFilteredLabs(data);
     })

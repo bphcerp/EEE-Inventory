@@ -6,6 +6,8 @@ import { InventoryItem } from "src/server/entities/entities";
 import { Button } from "@/components/ui/button";
 import { ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
+import axios from "axios";
+import api from "@/axiosInterceptor";
 
 export const Dashboard = () => {
     const userPermissions = useUserPermissions();
@@ -55,11 +57,8 @@ export const Dashboard = () => {
 
     useEffect(() => {
         const timer = setTimeout(() => setLoading(true), 2000);
-        fetch(showAllLabs ? '/api/inventory?allLabs=true' : '/api/inventory')
-            .then(response => response.json())
-            .then(data => {
-                setInventoryData(data);
-            })
+        api(showAllLabs ? '/api/inventory?allLabs=true' : '/api/inventory')
+            .then(({data}) => setInventoryData(data))
             .catch(error => {
                 toast.error('Error fetching inventory data:')
                 console.error({ message : 'Error fetching inventory data:', error });

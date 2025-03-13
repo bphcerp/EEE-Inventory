@@ -9,10 +9,12 @@ export default function LoginPage() {
   const navigate = useNavigate()
   const userPermissions = useUserPermissions()
   
-  if (userPermissions !== null) {
-    navigate('/dashboard')
-    return
-  }
+  useEffect(() => {
+    if (userPermissions !== null) {
+      navigate('/dashboard')
+      return
+    }
+  },[])
 
   return userPermissions === null && (
     <div className="bg-background flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">

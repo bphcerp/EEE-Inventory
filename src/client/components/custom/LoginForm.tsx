@@ -6,6 +6,7 @@ import { FormEvent } from "react"
 import axios from "axios"
 import { useNavigate } from "react-router"
 import { toast } from "sonner"
+import api from "@/axiosInterceptor.js"
 
 export function LoginForm({
   className,
@@ -17,7 +18,7 @@ export function LoginForm({
   const handleLogin = useGoogleLogin({
     hosted_domain: 'hyderabad.bits-pilani.ac.in',
     onSuccess: tokenResponse => {
-      axios.post('/api/auth/signin', { token : tokenResponse.access_token }).then(() => {
+      api.post('/api/auth/signin', { token : tokenResponse.access_token }).then(() => {
         navigate('/dashboard')
       }
       ).catch(err => {

@@ -10,15 +10,16 @@ import { toast } from "sonner";
 import { ChevronDown, ShieldAlert } from "lucide-react";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { DialogDescription } from "@radix-ui/react-dialog";
+import axios from "axios";
+import api from "@/axiosInterceptor";
 
 const AddUserDialog = ({ onAddUser }: { onAddUser: (user: Partial<User> & { labIds: string[] } ) => void }) => {
 	const [labs, setLabs] = useState<Laboratory[]>([]);
 	const [isOpen, setIsOpen] = useState(false)
 
 	useEffect(() => {
-		fetch("/api/labs")
-			.then((response) => response.json())
-			.then((data) => setLabs(data));
+		api("/api/labs")
+			.then(({data}) => setLabs(data));
 	}, []);
 
 	const { Field, Subscribe, state, handleSubmit, reset } = useForm({
