@@ -100,7 +100,7 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
                 borderWidth: "0px 3px 0px 0px",
                 borderColor: "var(--secondary)",
             }),
-            left: isPinned === 'left' ? `${column.getStart('left') + 8}px` : undefined,
+            left: isPinned === 'left' ? `${column.getStart('left') + 20}px` : undefined,
             position: isPinned ? 'sticky' : 'relative',
             width: column.getSize(),
             zIndex: isPinned ? 1 : 0,
@@ -247,7 +247,7 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
                     <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (
                             <TableRow key={headerGroup.id}>
-                                <TableHead className="z-2 bg-(--background) sticky left-0 h-full w-2">
+                                <TableHead className="z-2 bg-(--background) sticky left-0 h-full w-[20px]">
                                     <Checkbox
                                         checked={
                                             table.getIsAllPageRowsSelected() ||
@@ -282,7 +282,7 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
                                     key={row.id}
                                     data-state={row.getIsSelected() && "selected"}
                                 >
-                                    <TableCell className="z-2 bg-(--background) sticky left-0 w-2">
+                                    <TableCell className="z-2 bg-(--background) sticky left-0 w-[20px]">
                                         <Checkbox
                                             checked={row.getIsSelected()}
                                             onCheckedChange={(value) => row.toggleSelected(!!value)}

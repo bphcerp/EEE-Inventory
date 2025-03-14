@@ -14,6 +14,7 @@ import NotFound from './pages/NotFound'
 import { Toaster } from 'sonner'
 import NotAllowed from './pages/NotAllowed'
 import './axiosInterceptor'
+import AddInventoryItem from './pages/AddInventoryItem'
 
 const RedirectHandler = () => {
   const userPermissions = useUserPermissions();
@@ -39,6 +40,7 @@ createRoot(document.getElementById('root')!).render(
               <Route path='/about' element={<About />} />
               <Route element={<AdminOnlyRoutes/>}>
                 <Route path='/settings' element={<Settings />} />
+                <Route path='/add-item' element={<AddInventoryItem />} />
               </Route>
             </Route>
             <Route path="*" element={<NotFound />} />

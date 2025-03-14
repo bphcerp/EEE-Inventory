@@ -8,6 +8,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
 import axios from "axios";
 import api from "@/axiosInterceptor";
+import { useNavigate } from "react-router";
 
 export const Dashboard = () => {
     const userPermissions = useUserPermissions();
@@ -15,6 +16,8 @@ export const Dashboard = () => {
     const [loading, setLoading] = useState(true);
 
     const [showAllLabs, setShowAllLabs] = useState(Boolean(userPermissions));
+
+    const navigate = useNavigate()
 
     const columns = [
 
@@ -81,7 +84,7 @@ export const Dashboard = () => {
                     columnPinning: {
                         left: ['itemName', 'itemCategory', 'poNumber']
                     }
-                }} additionalButtons={userPermissions ? <Button>Add Item</Button> : <Button variant="link" onClick={() => setShowAllLabs(!showAllLabs)}>Show {showAllLabs ? 'My Labs' : 'All Labs'}</Button>} />
+                }} additionalButtons={userPermissions ? <Button onClick={() => navigate('/add-item')}>Add Item</Button> : <Button variant="link" onClick={() => setShowAllLabs(!showAllLabs)}>Show {showAllLabs ? 'My Labs' : 'All Labs'}</Button>} />
             )}
         </div>
     );

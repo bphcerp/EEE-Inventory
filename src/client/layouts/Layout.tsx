@@ -16,9 +16,9 @@ export const Layout = () => {
     }, [])
 
     return userPermissions !== null && (
-        <div className="flex flex-col w-screen h-screen">
+        <div className="flex flex-col h-screen">
             <Header />
-            <div className="container mx-auto grow overflow-y-auto">
+            <div className="container max-w-screen p-2">
                 <Outlet />
             </div>
         </div>

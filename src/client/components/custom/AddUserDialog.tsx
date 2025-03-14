@@ -10,7 +10,6 @@ import { toast } from "sonner";
 import { ChevronDown, ShieldAlert } from "lucide-react";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { DialogDescription } from "@radix-ui/react-dialog";
-import axios from "axios";
 import api from "@/axiosInterceptor";
 
 const AddUserDialog = ({ onAddUser }: { onAddUser: (user: Partial<User> & { labIds: string[] } ) => void }) => {

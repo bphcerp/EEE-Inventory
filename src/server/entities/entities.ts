@@ -42,7 +42,7 @@ export class InventoryItem {
     id: number;
 
     @ManyToOne(() => Laboratory)
-    labId: Laboratory; // Foreign key to the laboratory
+    lab: Laboratory; // Foreign key to the laboratory
 
     @Column("text")
     itemCategory: string; // Category of the item
