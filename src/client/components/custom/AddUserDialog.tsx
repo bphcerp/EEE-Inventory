@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Dispatch, SetStateAction } from "react";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,17 +12,23 @@ import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMe
 import { DialogDescription } from "@radix-ui/react-dialog";
 import api from "@/axiosInterceptor";
 
-const AddUserDialog = ({ onAddUser }: { onAddUser: (user: Partial<User> & { labIds: string[] } ) => void }) => {
+interface AddUserDialogProps{
+	onAddUser: (user: Partial<User> & { labIds: string[] }) => void
+	isOpen: boolean
+	setIsOpen: Dispatch<SetStateAction<boolean>>
+}
+
+const AddUserDialog = ({ onAddUser, isOpen, setIsOpen }: AddUserDialogProps) => {
 	const [labs, setLabs] = useState<Laboratory[]>([]);
-	const [isOpen, setIsOpen] = useState(false)
 
 	useEffect(() => {
 		api("/api/labs")
-			.then(({data}) => setLabs(data));
+			.then(({ data }) => setLabs(data));
 	}, []);
 
 	const { Field, Subscribe, state, handleSubmit, reset } = useForm({
 		defaultValues: {
+			name: '',
 			email: '',
 			permissions: 0 as 0 | 1,
 			labIds: [] as string[]
@@ -54,6 +60,23 @@ const AddUserDialog = ({ onAddUser }: { onAddUser: (user: Partial<User> & { labI
 
 					handleSubmit()
 				}}>
+					<Field
+						name="name">
+						{(field) => (
+							<>
+								<Label htmlFor="name">Name</Label>
+								<Input
+									id="name"
+									name="name"
+									className="rounded-r-none"
+									required
+									value={field.state.value}
+									onChange={(e) => field.handleChange(e.target.value)}
+									onBlur={field.handleBlur}
+								/>
+							</>
+						)}
+					</Field>
 					<Field
 						name="email">
 						{(field) => (
@@ -93,7 +116,7 @@ const AddUserDialog = ({ onAddUser }: { onAddUser: (user: Partial<User> & { labI
 							}</div></>
 					)} />
 					<Subscribe selector={(state) => [state.values.permissions]} children={([permissions]) => (
-						!permissions?<Field name="labIds" children={({ state, setValue }) => (<>
+						!permissions ? <Field name="labIds" children={({ state, setValue }) => (<>
 							<Label htmlFor="permissions">Laboratories</Label>
 							<DropdownMenu>
 								<DropdownMenuTrigger asChild>
@@ -122,7 +145,7 @@ const AddUserDialog = ({ onAddUser }: { onAddUser: (user: Partial<User> & { labI
 								</DropdownMenuContent>
 							</DropdownMenu>
 						</>
-						)} />:<></>
+						)} /> : <></>
 					)} />
 				</form>
 				<DialogFooter>

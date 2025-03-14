@@ -17,18 +17,21 @@ const labColumns: ColumnDef<Laboratory>[] = [
 ];
 
 const userColumns: ColumnDef<User>[] = [
+  { accessorKey: 'name', header: 'Name'},
   { accessorKey: 'email', header: 'Email', meta: { filterType: 'search' as TableFilterType } },
   { accessorFn: (row) => row.permissions ? "Admin" : "Technician", header: 'Permissions', meta: { filterType: 'dropdown' as TableFilterType } },
   { accessorKey: 'laboratories', header: 'Laboratories', cell: ({ row }) => row.original.permissions ? "NA" : row.original.laboratories?.length ? (row.original.laboratories as Laboratory[]).map((lab) => lab.name).join(" ,"): "None" },  
 ];
 
 const Settings = () => {
-  const [selectedOptionParam] = useSearchParams()
-  const [selectedOption, setSelectedOption] = useState<string | null>(selectedOptionParam.get("view"));
+  const [searchParams] = useSearchParams()
+  const [selectedOption, setSelectedOption] = useState<string | null>(searchParams.get("view"));
   const [data, setData] = useState<Laboratory[] | User[]>([]);
   const [loading, setLoading] = useState(false);
   const userPermissions = useUserPermissions()
   const navigate = useNavigate();
+
+  const [isUserAddDialogOpen, setIsUserAddDialogOpen] = useState(false)
 
   const fetchData = () => {
     if (selectedOption) {
@@ -47,6 +50,8 @@ const Settings = () => {
   }
 
   useEffect(() => {
+    const addUserParam = searchParams.get('action')
+    if (addUserParam) setIsUserAddDialogOpen(true)
     fetchData()
   }, [selectedOption]);
 
@@ -78,7 +83,7 @@ const Settings = () => {
           </SelectContent>
         </Select>
         {selectedOption && selectedOption === "Users" && (
-          <AddUserDialog onAddUser={handleAddUser} />
+          <AddUserDialog isOpen={isUserAddDialogOpen} setIsOpen={setIsUserAddDialogOpen} onAddUser={handleAddUser} />
         )}
       </div>
 
@@ -94,7 +99,7 @@ const Settings = () => {
             selectedOption === "Labs" ? (
               <DataTable<Laboratory> data={data as Laboratory[]} columns={labColumns} mainSearchColumn="name" />
             ) : (
-              <DataTable<User> data={data as User[]} columns={userColumns} mainSearchColumn="email" />
+              <DataTable<User> data={data as User[]} columns={userColumns} mainSearchColumn="name" />
             )
           ) : <div>
             <div className="flex flex-col items-center justify-center h-64">

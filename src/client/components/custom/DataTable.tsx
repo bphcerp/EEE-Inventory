@@ -41,6 +41,8 @@ import { CSSProperties, ReactNode } from "react"
 interface DataTableProps<T> {
     data: T[];
     columns: ColumnDef<T>[];
+
+    // If mainSearchColumn is set, the meta filter options if set are ignored as there is a global filter already present.
     mainSearchColumn?: keyof T;
     initialState?: InitialTableState
     additionalButtons?: ReactNode

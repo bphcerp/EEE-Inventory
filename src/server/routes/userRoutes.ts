@@ -18,9 +18,9 @@ router.get('/labs', getUserLabs);
 router.post('/', addUser);
 
 // PUT /users Route to modify an existing user
-router.put('/', modifyUser);
+router.put('/:id', modifyUser);
 
 // DELETE /users Route to delete an existing user
-router.delete('/', deleteUser);
+router.delete('/:id', deleteUser);
 
 export default router;

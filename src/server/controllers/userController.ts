@@ -33,8 +33,11 @@ export const getUserPermissions = async (req: Request, res: Response) => {
 
 // Get All Users Controller
 export const getAllUsers = async (req: Request, res: Response) => {
+    // To get all the admins or technicians
+    const { filter } = req.query
     try {
         const users = await userRepository.find({
+            ...( filter ? { where : { permissions : filter === 'Admin' ? 1 : 0 } } : {} ),
             relations: ['laboratories']
         });
 
@@ -64,7 +67,7 @@ export const getUserLabs = async (req: Request, res: Response) => {
 
 // Add User Controller
 export const addUser = async (req: Request, res: Response) => {
-    const { email, permissions, labIds } = req.body;
+    const { name, email, permissions, labIds } = req.body;
 
     const queryRunner = AppDataSource.createQueryRunner();
     await queryRunner.connect();
@@ -73,6 +76,7 @@ export const addUser = async (req: Request, res: Response) => {
     try {
         const user = new User();
         user.email = email;
+        user.name = name
         user.permissions = permissions;
         user.laboratories = (labIds as string[]).map((id) => ({ id })) as any
         await queryRunner.manager.save(user);
@@ -90,7 +94,8 @@ export const addUser = async (req: Request, res: Response) => {
 
 // Modify User Controller
 export const modifyUser = async (req: Request, res: Response) => {
-    const { id, email, permissions } = req.body;
+    const { name, email, permissions } = req.body;
+    const { id }  = req.params
 
     const queryRunner = AppDataSource.createQueryRunner();
     await queryRunner.connect();
@@ -122,7 +127,7 @@ export const modifyUser = async (req: Request, res: Response) => {
 
 // Delete User Controller
 export const deleteUser = async (req: Request, res: Response) => {
-    const { id } = req.body;
+    const { id } = req.params;
 
     const queryRunner = AppDataSource.createQueryRunner();
     await queryRunner.connect();

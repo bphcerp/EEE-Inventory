@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -6,21 +6,39 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import api from "@/axiosInterceptor";
-import { Laboratory } from "src/server/entities/entities";
+import { Laboratory, User } from "src/server/entities/entities";
 import { useForm } from "@tanstack/react-form";
+import FuzzySearch from "fuzzy-search";
+import { Link } from "react-router";
 
 const AddInventoryItem = () => {
     const [labs, setLabs] = useState<Laboratory[]>([]);
     const [filteredLabs, setFilteredLabs] = useState<Laboratory[]>([]);
+
+    const [faculties, setFaculties] = useState<string[]>([])
+    const [filteredFaculties, setFilteredFaculties] = useState<string[]>([]);
+
+    const [technicians, setTechnicians] = useState<User[]>([])
+    const [filteredTechnicians, setFilteredTechnicians] = useState<User[]>([]);
+
 
     useEffect(() => {
         api("/api/labs").then(({ data }) => {
             setLabs(data)
             setFilteredLabs(data)
         });
+
+        api("/api/users?filter=0").then(({ data }) => {
+            setTechnicians(data)
+        });
+
+        api("/api/inventory/faculties").then(({ data }) => {
+            setFaculties(data)
+        });
+
     }, []);
 
-    const { Field, Subscribe, state, handleSubmit, reset } = useForm({
+    const { Field, Subscribe, handleSubmit } = useForm({
         defaultValues: {
             labId: "",
             itemCategory: "",
@@ -144,17 +162,16 @@ const AddInventoryItem = () => {
                             <div className="flex flex-col space-y-2">
                                 <Label>Lab</Label>
                                 <Select value={field.state.value} onValueChange={(value) => field.handleChange(value)}>
-                                    <SelectTrigger>
+                                    <SelectTrigger className="w-52">
                                         <SelectValue placeholder="Select Lab" />
                                     </SelectTrigger>
-                                    <SelectContent>
-                                        <div className="grid grid-cols-4 gap-x-2" onKeyDown={(e) => e.stopPropagation()}>
-                                            <Input className="col-span-3" placeholder="Search Labs..." onChange={(e) => {
-                                                const searchTerm = e.target.value.toLowerCase();
-                                                setFilteredLabs(labs.filter(lab => lab.name.toLowerCase().includes(searchTerm)));
+                                    <SelectContent onPointerDownOutside={() => setFilteredLabs(labs)}>
+                                        <div className="grid grid-cols-4 gap-x-2">
+                                            <Input name="lab" onKeyDown={(e) => e.stopPropagation()} className="col-span-3" placeholder="Search Labs..." onChange={(e) => {
+                                                const searcher = new FuzzySearch(labs, ['name'], { caseSensitive: false });
+                                                setFilteredLabs(searcher.search(e.target.value));
                                             }} />
-                                            <Button onClick={() => setFilteredLabs(labs)}>Reset</Button>
-                                        </div>
+                                            {!filteredLabs.length ? <Button>Add</Button> : <></>} </div>
                                         {filteredLabs.map((lab) => (
                                             <SelectItem key={lab.id} value={lab.id}>
                                                 {lab.name}
@@ -169,7 +186,35 @@ const AddInventoryItem = () => {
                         {(field) => (
                             <div className="flex flex-col space-y-2">
                                 <Label>Lab In-charge at Purchase</Label>
-                                <Input value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} />
+                                <Select value={field.state.value} onValueChange={(value) => {
+                                    console.log(value)
+                                    field.handleChange(value)
+                                }}>
+                                    <SelectTrigger className="w-52">
+                                        <SelectValue placeholder="Select Lab In-charge" />
+                                    </SelectTrigger>
+                                    <SelectContent onPointerDownOutside={() => setFilteredFaculties(faculties)}>
+                                        <form id="newFacultyForm" className="grid grid-cols-4 gap-x-2" onKeyDown={(e) => e.stopPropagation()} onSubmit={(e: FormEvent<HTMLFormElement>) => {
+                                            e.preventDefault()
+                                            e.stopPropagation()
+
+                                            const formData = new FormData(e.target as HTMLFormElement)
+                                            const newFaculty = formData.get('facultySearch')!.toString()
+                                            setFaculties((prev) => [newFaculty, ...prev])
+                                            field.setValue(newFaculty)
+
+                                        }}><Input name="facultySearch" className="col-span-3" placeholder="Search Faculties..." onChange={(e) => {
+                                            const searcher = new FuzzySearch(faculties, [''], { caseSensitive: false });
+                                            setFaculties(searcher.search(e.target.value));
+                                        }} />
+                                            <Button form="newFacultyForm" onClick={() => setFilteredLabs(labs)}>Add</Button></form>
+                                        {faculties.map((incharge, i) => (
+                                            <SelectItem key={i} value={incharge}>
+                                                {incharge}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
                         )}
                     </Field>
@@ -177,7 +222,25 @@ const AddInventoryItem = () => {
                         {(field) => (
                             <div className="flex flex-col space-y-2">
                                 <Label>Lab Technician at Purchase</Label>
-                                <Input value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} />
+                                <Select value={field.state.value} onValueChange={(value) => field.handleChange(value)}>
+                                    <SelectTrigger className="w-52">
+                                        <SelectValue placeholder="Select Lab Technician" />
+                                    </SelectTrigger>
+                                    <SelectContent onPointerDownOutside={() => setFilteredTechnicians(technicians)}>
+                                        {technicians.length ? <Input onKeyDown={(e) => e.stopPropagation()} className="col-span-3" placeholder="Search Technicians..." onChange={(e) => {
+                                            const searcher = new FuzzySearch(technicians, ['name'], { caseSensitive: false });
+                                            setFilteredTechnicians(searcher.search(e.target.value));
+                                        }} /> : <div className="grid grid-cols-4">
+                                            <SelectItem className="col-span-3" value="NA" disabled>No Technicians Added</SelectItem>
+                                            <Link to="/settings?view=Users&&action=addUser"><Button>Add</Button></Link>
+                                        </div>}
+                                        {technicians.map((technician) => (
+                                            <SelectItem key={technician.id} value={technician.id}>
+                                                {technician.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
                         )}
                     </Field>

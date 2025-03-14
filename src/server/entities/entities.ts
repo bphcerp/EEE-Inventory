@@ -11,13 +11,18 @@ export class User {
     @PrimaryGeneratedColumn("uuid")
     id: string;
 
+    @Column("text")
+    name: string;
+
     @Column({ type: "text", unique: true })
     email: string;
 
     @Column({ type: "enum", enum: [0, 1] })
     permissions: 0 | 1; // 0 for read (Technician), 1 for read and write (Admin)
 
-    @ManyToMany(() => Laboratory, (laboratory) => laboratory.technicians)
+    @ManyToMany(() => Laboratory, (laboratory) => laboratory.technicians, {
+        onDelete: 'CASCADE'
+    })
     laboratories?: Laboratory[];
 }
 
