@@ -12,7 +12,6 @@ export default function LoginPage() {
   useEffect(() => {
     if (userPermissions !== null) {
       navigate('/dashboard')
-      return
     }
   },[])
 

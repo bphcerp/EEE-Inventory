@@ -25,8 +25,9 @@ export const signIn = async (req: Request, res: Response) => {
             return
         }
 
-        const jwtToken = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '1h' });
-        res.cookie('token', jwtToken, { httpOnly: true, sameSite: 'strict', expires: new Date(Date.now() + 3600000) });
+        // JWT and Cookie expire in 1 hour for admin, 3 hours for technician
+        const jwtToken = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: user.permissions ? '1h' : '3h' });
+        res.cookie('token', jwtToken, { httpOnly: true, sameSite: 'strict', expires: new Date(Date.now() + ( user.permissions ? 3600000 : 3600 * 1000 * 3)) });
 
         res.status(200).json({ message: 'Signed in successfully' });
     } catch (error) {

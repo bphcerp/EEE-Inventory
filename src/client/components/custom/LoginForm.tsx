@@ -17,15 +17,15 @@ export function LoginForm({
 
   const handleLogin = useGoogleLogin({
     hosted_domain: 'hyderabad.bits-pilani.ac.in',
-    onSuccess: tokenResponse => {
-      api.post('/api/auth/signin', { token : tokenResponse.access_token }).then(() => {
-        navigate('/dashboard')
+    onSuccess: async (tokenResponse) => {
+      try {
+        await api.post('/api/auth/signin', { token: tokenResponse.access_token })
+        navigate('/dashboard', { replace: true })
       }
-      ).catch(err => {
+      catch (err) {
         toast.error("Error signing in!")
         console.error({ message: "Error signing in", err })
       }
-      )
     }
   })
 
