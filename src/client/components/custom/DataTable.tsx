@@ -6,11 +6,13 @@ import {
     ColumnDef,
     ColumnFiltersState,
     InitialTableState,
+    Row,
     RowData,
     SortingState,
     VisibilityState,
     flexRender,
     getCoreRowModel,
+    getFacetedMinMaxValues,
     getFacetedUniqueValues,
     getFilteredRowModel,
     getPaginationRowModel,
@@ -69,9 +71,29 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
         React.useState<VisibilityState>({})
     const [rowSelection, setRowSelection] = React.useState({})
 
+    const isWithinRange = (row: Row<T>, columnId: string, value: any) => {
+        const date = new Date(row.getValue(columnId));
+        const [startDateString, endDateString] = value;
+        const [start, end] = [startDateString ? new Date(startDateString) : undefined, endDateString ? new Date(endDateString) : undefined]
+
+        // value => two date input values
+        //If one filter defined and date is null filter it
+        if ((start || end) && !date) return false;
+        if (start && !end) {
+            return date.getTime() >= start.getTime()
+        } else if (!start && end) {
+            return date.getTime() <= end.getTime()
+        } else if (start && end) {
+            return date.getTime() >= start.getTime() && date.getTime() <= end.getTime()
+        } else return true;
+    }
+
     const table = useReactTable({
         data,
-        columns,
+        columns: columns.map((columnDef) => (columnDef.meta?.filterType === 'date-range' ? {
+            ...columnDef,
+            filterFn: isWithinRange
+        } : columnDef)),
         initialState,
         enableColumnPinning: true,
         onSortingChange: setSorting,
@@ -83,6 +105,7 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
         onColumnVisibilityChange: setColumnVisibility,
         onRowSelectionChange: setRowSelection,
         getFacetedUniqueValues: getFacetedUniqueValues(),
+        getFacetedMinMaxValues: getFacetedMinMaxValues(),
         state: {
             sorting,
             columnFilters,
@@ -96,16 +119,16 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
         const isLastLeftPinnedColumn =
             isPinned === 'left' && column.getIsLastColumn('left')
 
+        const computedJSWidth = document.getElementById(column.id)?.offsetLeft ?? 0
+
         return {
             backgroundColor: "var(--background)",
             ...(isPinned && isLastLeftPinnedColumn && {
-                borderWidth: "0px 3px 0px 0px",
-                borderColor: "var(--secondary)",
+                boxShadow: '-2px 0 4px -4px var(--primary) inset'
             }),
-            left: isPinned === 'left' ? `${column.getStart('left') + 20}px` : undefined,
+            left: isPinned === 'left' ? `${isLastLeftPinnedColumn ? computedJSWidth - 2 :  computedJSWidth}px` : undefined,
             position: isPinned ? 'sticky' : 'relative',
-            width: column.getSize(),
-            zIndex: isPinned ? 1 : 0,
+            zIndex: isPinned ? 10 : 0,
         }
     }
 
@@ -163,30 +186,75 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
                 return (
                     <Input
                         placeholder='Search'
+                        className="w-32"
                         value={column.getFilterValue() as string}
                         onChange={(event) => column.setFilterValue(event.target.value)}
                     />
                 );
             case "number-range":
-            case "date-range":
                 return (
                     <div className="flex space-x-2">
                         <Input
                             type="number"
-                            placeholder="Min"
-                            value={(column.getFilterValue() as [number, number])[0]}
+                            min={Number(column.getFacetedMinMaxValues()?.[0] ?? '')}
+                            max={Number(column.getFacetedMinMaxValues()?.[1] ?? '')}
+                            value={(column.getFilterValue() as [number, number])?.[0] ?? ''}
                             onChange={(event) => {
                                 const [min, max] = column.getFilterValue() as [number, number];
                                 column.setFilterValue([Number(event.target.value), max]);
                             }}
+                            placeholder='Min'
                         />
                         <Input
                             type="number"
-                            placeholder="Max"
-                            value={(column.getFilterValue() as [number, number])[1]}
+                            min={Number(column.getFacetedMinMaxValues()?.[0] ?? '')}
+                            max={Number(column.getFacetedMinMaxValues()?.[1] ?? '')}
+                            value={(column.getFilterValue() as [number, number])?.[1] ?? ''}
                             onChange={(event) => {
                                 const [min, max] = column.getFilterValue() as [number, number];
                                 column.setFilterValue([min, Number(event.target.value)]);
+                            }}
+                            placeholder='Max'
+                        />
+                    </div>
+                );
+            case "date-range":
+                return (
+                    <div className="flex space-x-2">
+                        <Input
+                            type="date"
+                            value={(column.getFilterValue() as [string, string])?.[0] ?? ''}
+                            onChange={(event) => {
+                                const prevFilterValue = column.getFilterValue() as [string, string]
+                                if (!event.target.value) {
+                                    column.setFilterValue([undefined, prevFilterValue[1]])
+                                    return
+                                }
+                                if (prevFilterValue) {
+                                    const [min, max] = prevFilterValue
+                                    column.setFilterValue([event.target.value, max]);
+                                }
+                                else {
+                                    column.setFilterValue([event.target.value, undefined])
+                                }
+                            }}
+                        />
+                        <Input
+                            type="date"
+                            value={(column.getFilterValue() as [string, string])?.[1] ?? ''}
+                            onChange={(event) => {
+                                const prevFilterValue = column.getFilterValue() as [string, string]
+                                if (!event.target.value) {
+                                    column.setFilterValue([prevFilterValue[0], undefined])
+                                    return
+                                }
+                                if (prevFilterValue) {
+                                    const [min, max] = prevFilterValue
+                                    column.setFilterValue([min, event.target.value]);
+                                }
+                                else {
+                                    column.setFilterValue([undefined, event.target.value]);
+                                }
                             }}
                         />
                     </div>
@@ -245,7 +313,7 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
                 </div>
             </div>
             {data.length ? <div className="rounded-md border p-2">
-                <Table className='table-fixed'>
+                <Table className='table-auto'>
                     <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (
                             <TableRow key={headerGroup.id}>
@@ -261,8 +329,8 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
                                 </TableHead>
                                 {headerGroup.headers.map((header) => {
                                     return (
-                                        <TableHead colSpan={header.colSpan} style={{ ...getCommonPinningStyles(header.column) }} key={header.id}>
-                                            <div className="flex flex-col items-start gap-y-2 py-2">
+                                        <TableHead id={header.column.id} colSpan={header.colSpan} style={{ ...getCommonPinningStyles(header.column) }} key={header.id}>
+                                            <div className={`flex flex-col w-max text-center items-start gap-y-2 py-2`}>
                                                 {header.isPlaceholder
                                                     ? null
                                                     : flexRender(
@@ -292,11 +360,13 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
                                         />
                                     </TableCell>
                                     {row.getVisibleCells().map((cell) => (
-                                        <TableCell style={{ ...getCommonPinningStyles(cell.column) }} key={cell.id}>
-                                            {flexRender(
-                                                cell.column.columnDef.cell,
-                                                cell.getContext()
-                                            )}
+                                        <TableCell className={(cell.column.columnDef.meta && ['date-range', 'number-range'].includes(cell.column.columnDef.meta.filterType ?? '')) ? 'text-center' : ''} style={{ ...getCommonPinningStyles(cell.column) }} key={cell.id}>
+                                            {
+                                                cell.getValue() ? flexRender(
+                                                    cell.column.columnDef.cell,
+                                                    cell.getContext()
+                                                ) : "Not set"
+                                            }
                                         </TableCell>
                                     ))}
                                 </TableRow>

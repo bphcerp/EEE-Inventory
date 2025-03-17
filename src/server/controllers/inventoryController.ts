@@ -14,7 +14,6 @@ import { InventoryItem } from '../entities/entities.js';
 export const addInventoryItem = async (req: Request, res: Response) => {
     // Assumes upload middleware is used while handling the route
     try {
-        console.log(req.files);
 
         // Parse form data and convert date fields back to Date objects
         const formData = {
@@ -52,7 +51,7 @@ export const getInventory = async (req: Request, res: Response) => {
     try {
         const items = await itemRepository.find({
             ...( !allLabs ? { where : { lab : In(req.user!.laboratories ?? []) } } : {} ),
-            relations: ['lab']
+            relations: ['lab', 'labInchargeAtPurchase', 'labTechnicianAtPurchase']
         });
 
         res.status(200).json(items);
