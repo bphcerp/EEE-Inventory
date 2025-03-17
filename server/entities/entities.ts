@@ -1,0 +1,150 @@
+/**
+ * @file entities.ts
+ * @description This file contains the entity definitions for the User, Laboratory, and InventoryItem entities used in the EEE-Inventory system.
+ */
+
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinTable, ManyToMany } from 'typeorm';
+
+// User entity
+@Entity()
+export class User {
+    @PrimaryGeneratedColumn("uuid")
+    id: string;
+
+    @Column("text")
+    name: string;
+
+    @Column({ type: "text", unique: true })
+    email: string;
+
+    @Column({ type: "enum", enum: [0, 1] })
+    permissions: 0 | 1; // 0 for read (non-Admin), 1 for read and write (Admin)
+
+    @Column({ type: "enum", enum: ["Admin", "Technician", "Faculty"]})
+    role: "Admin" | "Technician" | "Faculty"; // 0 for read (non-Admin), 1 for read and write (Admin)
+
+    @ManyToMany(() => Laboratory, (laboratory) => laboratory.technicians, {
+        onDelete: 'CASCADE'
+    })
+    laboratories?: Laboratory[];
+}
+
+// Laboratory entity
+@Entity()
+export class Laboratory {
+    @PrimaryGeneratedColumn("uuid")
+    id: string;
+
+    @Column({ type: "text", unique: true })
+    name: string;
+
+    @ManyToMany(() => User, (user) => user.laboratories)
+    @JoinTable()
+    technicians: User[];
+}   
+
+// InventoryItem entity
+@Entity()
+export class InventoryItem {
+    @PrimaryGeneratedColumn("uuid")
+    id: string;
+
+    @ManyToOne(() => Laboratory)
+    lab: Laboratory; // Foreign key to the laboratory
+
+    @Column("text")
+    itemCategory: string; // Category of the item
+
+    @Column("text")
+    itemName: string; // Name of the item
+
+    @Column("text")
+    specifications: string; // Specifications of the item
+
+    @Column("int")
+    quantity: number; // Quantity of the item
+
+    @Column("int", { nullable: true })
+    noOfLicenses?: number; // Number of licenses (if applicable)
+
+    @Column("text", { nullable: true })
+    natureOfLicense?: string; // Nature of the license (if applicable)
+
+    @Column("int", { nullable: true })
+    yearOfLease?: number; // Year of lease (if applicable)
+
+    @Column("decimal", { precision: 15, scale: 2 })
+    itemAmountInPO: number; // Amount of the item in the purchase order
+
+    @Column("text")
+    poNumber: string; // Purchase order number
+
+    @Column("date")
+    poDate: Date; // Purchase order date
+
+    @ManyToOne(() => User, { nullable: true })
+    labInchargeAtPurchase?: User; // Lab in-charge at the time of purchase
+
+    @ManyToOne(() => User, { nullable: true })
+    labTechnicianAtPurchase?: User; // Lab technician at the time of purchase
+
+    @Column("text")
+    equipmentID: string; // Equipment ID
+
+    @Column("text")
+    fundingSource: string; // Source of funding
+
+    @Column("date", { nullable: true })
+    dateOfInstallation?: Date; // Date of installation (if applicable)
+
+    @Column("text")
+    vendorName: string; // Vendor name
+
+    @Column("text")
+    vendorAddress: string; // Vendor address
+
+    @Column("text")
+    vendorPOCName: string; // Vendor point of contact name
+
+    @Column("text")
+    vendorPOCPhoneNumber: string; // Vendor point of contact phone number
+
+    @Column("text")
+    vendorPOCEmailID: string; // Vendor point of contact email ID
+
+    @Column("date", { nullable: true })
+    warrantyFrom?: Date; // Warranty start date (if applicable)
+
+    @Column("date", { nullable: true })
+    warrantyTo?: Date; // Warranty end date (if applicable)
+
+    @Column("date", { nullable: true })
+    amcFrom?: Date; // AMC start date (if applicable)
+
+    @Column("date", { nullable: true })
+    amcTo?: Date; // AMC end date (if applicable)
+
+    @Column("text")
+    currentLocation: string; // Current location of the item
+
+    @Column("text", { nullable: true })
+    softcopyOfPO?: string; // Soft copy of the purchase order (if applicable)
+
+    @Column("text", { nullable: true })
+    softcopyOfInvoice?: string; // Soft copy of the invoice (if applicable)
+
+    @Column("text", { nullable: true })
+    softcopyOfNFA?: string; // Soft copy of the NFA (if applicable)
+
+    @Column("text", { nullable: true })
+    softcopyOfAMC?: string; // Soft copy of the AMC (if applicable)
+
+    @Column({ type: "enum", enum: ["Working", "Not Working"], nullable: true })
+    status?: "Working" | "Not Working" | null; // Status of the item
+
+    @Column("text", { nullable: true })
+    equipmentPhoto?: string; // Photo of the equipment (if applicable)
+
+    @Column("text", { nullable: true })
+    remarks?: string; // Additional remarks (if applicable)
+}
