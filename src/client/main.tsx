@@ -31,7 +31,7 @@ createRoot(document.getElementById('root')!).render(
     <BrowserRouter>
       <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
         <UserPermissionsProvider>
-          <Toaster richColors position='top-center' closeButton />
+          <Toaster expand richColors position='top-center' closeButton />
           <Routes>
             <Route path="/" element={<RedirectHandler />} />
             <Route path='/login' element={<LoginPage />} />

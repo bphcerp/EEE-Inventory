@@ -1,14 +1,12 @@
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DataTable, TableFilterType } from "@/components/custom/DataTable";
 import { Laboratory, User } from "src/server/entities/entities";
-import { useUserPermissions } from "@/contexts/UserPermissionsProvider";
 import { useNavigate, useSearchParams } from "react-router";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ColumnDef } from "@tanstack/react-table";
 import AddUserDialog from "@/components/custom/AddUserDialog";
-import axios, { AxiosError } from "axios";
+import { AxiosError } from "axios";
 import { toast } from "sonner";
 import api from "@/axiosInterceptor";
 
@@ -19,7 +17,8 @@ const labColumns: ColumnDef<Laboratory>[] = [
 const userColumns: ColumnDef<User>[] = [
   { accessorKey: 'name', header: 'Name'},
   { accessorKey: 'email', header: 'Email', meta: { filterType: 'search' as TableFilterType } },
-  { accessorFn: (row) => row.permissions ? "Admin" : "Technician", header: 'Permissions', meta: { filterType: 'dropdown' as TableFilterType } },
+  { accessorKey: 'role', header: 'Role', meta: { filterType: 'dropdown' as TableFilterType } },
+  // { accessorFn: (row) => row.permissions ? "Admin" : "Technician", header: 'Permissions', meta: { filterType: 'dropdown' as TableFilterType } },
   { accessorKey: 'laboratories', header: 'Laboratories', cell: ({ row }) => row.original.permissions ? "NA" : row.original.laboratories?.length ? (row.original.laboratories as Laboratory[]).map((lab) => lab.name).join(" ,"): "None" },  
 ];
 
@@ -28,7 +27,6 @@ const Settings = () => {
   const [selectedOption, setSelectedOption] = useState<string | null>(searchParams.get("view"));
   const [data, setData] = useState<Laboratory[] | User[]>([]);
   const [loading, setLoading] = useState(false);
-  const userPermissions = useUserPermissions()
   const navigate = useNavigate();
 
   const [isUserAddDialogOpen, setIsUserAddDialogOpen] = useState(false)

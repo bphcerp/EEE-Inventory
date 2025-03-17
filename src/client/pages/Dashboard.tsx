@@ -19,7 +19,21 @@ export const Dashboard = () => {
 
     const navigate = useNavigate()
 
-    const columns = [
+    const fetchFile = async (field: string, id: string) => {
+        try {
+            const response = await axios.get(`/api/inventory/${id}?field=${field}`, { responseType: 'blob' });
+            const url = window.URL.createObjectURL(response.data);
+            const newWindow = window.open(url, '_blank', 'noopener,noreferrer');
+            if (newWindow) {
+                newWindow.document.title = `${field}.pdf`;
+            }
+        } catch (error) {
+            toast.error('Error fetching file');
+            console.error(error);
+        }
+    };
+
+    const columns: ColumnDef<InventoryItem>[] = [
 
         // Three pinned columns: Item Name, Category, PO Number
         { accessorKey: 'itemName', header: 'Item Name' },
@@ -27,9 +41,9 @@ export const Dashboard = () => {
         { accessorKey: 'poNumber', header: 'PO Number', meta: { filterType: 'search' as TableFilterType } },
 
         // Unpinned columns
-        // { accessorKey: 'quantity', header: 'Quantity', meta: { filterType: 'number-range' as TableFilterType } },
-        // { accessorKey: 'itemAmountInPO', header: 'Amount in PO', meta: { filterType: 'number-range' as TableFilterType } },
-        // { accessorKey: 'poDate', header: 'PO Date', meta: { filterType: 'date-range' as TableFilterType } },
+        { accessorKey: 'quantity', header: 'Quantity' },
+        { accessorKey: 'itemAmountInPO', header: 'Amount in PO' },
+        { accessorKey: 'poDate', header: 'PO Date' },
         { accessorKey: 'vendorName', header: 'Vendor Name', meta: { filterType: 'dropdown' as TableFilterType } },
         { accessorKey: 'currentLocation', header: 'Current Location', meta: { filterType: 'dropdown' as TableFilterType } },
         { accessorKey: 'status', header: 'Status', meta: { filterType: 'dropdown' as TableFilterType } },
@@ -50,11 +64,11 @@ export const Dashboard = () => {
         { accessorKey: 'warrantyTo', header: 'Warranty To' },
         { accessorKey: 'amcFrom', header: 'AMC From' },
         { accessorKey: 'amcTo', header: 'AMC To' },
-        { accessorKey: 'softcopyOfPO', header: 'Softcopy of PO' },
-        { accessorKey: 'softcopyOfInvoice', header: 'Softcopy of Invoice' },
-        { accessorKey: 'softcopyOfNFA', header: 'Softcopy of NFA' },
-        { accessorKey: 'softcopyOfAMC', header: 'Softcopy of AMC' },
-        { accessorKey: 'equipmentPhoto', header: 'Equipment Photo' },
+        { accessorKey: 'softcopyOfPO', header: 'Softcopy of PO', cell: ({ row , getValue}) => (getValue() as string | null) ? <Button variant="link" onClick={() => fetchFile('softcopyOfPO', row.original.id)}>View</Button> : "Not Uploaded" },
+        { accessorKey: 'softcopyOfInvoice', header: 'Softcopy of Invoice', cell: ({ row , getValue}) => (getValue() as string | null) ? <Button variant="link" onClick={() => fetchFile('softcopyOfInvoice', row.original.id)}>View</Button> : "Not Uploaded" },
+        { accessorKey: 'softcopyOfNFA', header: 'Softcopy of NFA', cell: ({ row , getValue}) => (getValue() as string | null) ? <Button variant="link" onClick={() => fetchFile('softcopyOfNFA', row.original.id)}>View</Button> : "Not Uploaded" },
+        { accessorKey: 'softcopyOfAMC', header: 'Softcopy of AMC', cell: ({ row , getValue}) => (getValue() as string | null) ? <Button variant="link" onClick={() => fetchFile('softcopyOfAMC', row.original.id)}>View</Button> : "Not Uploaded" },
+        { accessorKey: 'equipmentPhoto', header: 'Equipment Photo', cell: ({ row , getValue}) => (getValue() as string | null) ? <Button variant="link" onClick={() => fetchFile('equipmentPhoto', row.original.id)}>View</Button> : "Not Uploaded" },
         { accessorKey: 'remarks', header: 'Remarks' },
     ];
 

@@ -18,7 +18,10 @@ export class User {
     email: string;
 
     @Column({ type: "enum", enum: [0, 1] })
-    permissions: 0 | 1; // 0 for read (Technician), 1 for read and write (Admin)
+    permissions: 0 | 1; // 0 for read (non-Admin), 1 for read and write (Admin)
+
+    @Column({ type: "enum", enum: ["Admin", "Technician", "Faculty"]})
+    role: "Admin" | "Technician" | "Faculty"; // 0 for read (non-Admin), 1 for read and write (Admin)
 
     @ManyToMany(() => Laboratory, (laboratory) => laboratory.technicians, {
         onDelete: 'CASCADE'
@@ -43,8 +46,8 @@ export class Laboratory {
 // InventoryItem entity
 @Entity()
 export class InventoryItem {
-    @PrimaryGeneratedColumn()
-    id: number;
+    @PrimaryGeneratedColumn("uuid")
+    id: string;
 
     @ManyToOne(() => Laboratory)
     lab: Laboratory; // Foreign key to the laboratory
@@ -79,8 +82,8 @@ export class InventoryItem {
     @Column("date")
     poDate: Date; // Purchase order date
 
-    @Column("text", { nullable: true })
-    labInchargeAtPurchase?: string; // Lab in-charge at the time of purchase
+    @ManyToOne(() => User, { nullable: true })
+    labInchargeAtPurchase?: User; // Lab in-charge at the time of purchase
 
     @ManyToOne(() => User, { nullable: true })
     labTechnicianAtPurchase?: User; // Lab technician at the time of purchase

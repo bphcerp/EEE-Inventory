@@ -11,8 +11,9 @@ import { ChevronDown, ShieldAlert } from "lucide-react";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { DialogDescription } from "@radix-ui/react-dialog";
 import api from "@/axiosInterceptor";
+import { useSearchParams } from "react-router";
 
-interface AddUserDialogProps{
+interface AddUserDialogProps {
 	onAddUser: (user: Partial<User> & { labIds: string[] }) => void
 	isOpen: boolean
 	setIsOpen: Dispatch<SetStateAction<boolean>>
@@ -20,6 +21,7 @@ interface AddUserDialogProps{
 
 const AddUserDialog = ({ onAddUser, isOpen, setIsOpen }: AddUserDialogProps) => {
 	const [labs, setLabs] = useState<Laboratory[]>([]);
+	const [searchParams, setSearchParams] = useSearchParams()
 
 	useEffect(() => {
 		api("/api/labs")
@@ -31,10 +33,14 @@ const AddUserDialog = ({ onAddUser, isOpen, setIsOpen }: AddUserDialogProps) => 
 			name: '',
 			email: '',
 			permissions: 0 as 0 | 1,
+			role: '' as 'Admin' | 'Technician' | 'Faculty',
 			labIds: [] as string[]
 		},
 		onSubmit: ({ value: data }) => {
+			searchParams.delete('action')
+			setSearchParams(searchParams)
 			data.email += "@hyderabad.bits-pilani.ac.in"
+			data.permissions = data.role === 'Admin' ? 1 : 0
 			onAddUser(data)
 			setIsOpen(false)
 		}
@@ -43,6 +49,8 @@ const AddUserDialog = ({ onAddUser, isOpen, setIsOpen }: AddUserDialogProps) => 
 	return (
 		<Dialog open={isOpen} onOpenChange={(open) => {
 			setIsOpen(open)
+			searchParams.delete('action')
+			setSearchParams(searchParams)
 			reset()
 		}}>
 			<DialogTrigger asChild>
@@ -100,19 +108,35 @@ const AddUserDialog = ({ onAddUser, isOpen, setIsOpen }: AddUserDialogProps) => 
 							</>
 						)}
 					</Field>
-					<Field name="permissions" children={({ state, handleChange }) => (<>
-						<Label htmlFor="permissions">Role</Label>
+					{/* <Field name="permissions" children={({ state, handleChange }) => (<>
+						<Label htmlFor="permissions">Access</Label>
 						<div className="flex space-x-2">
 							<Select required value={state.value.toString()} onValueChange={(value) => handleChange(parseInt(value) as 0 | 1)}>
 								<SelectTrigger className="w-36">
 									<SelectValue placeholder="Select Permissions" />
 								</SelectTrigger>
 								<SelectContent id="permissions">
-									<SelectItem value="0">Technician</SelectItem>
+									<SelectItem value="0">Non-Admin</SelectItem>
 									<SelectItem value="1">Admin</SelectItem>
 								</SelectContent>
 							</Select>{
 								state.value ? <div className="flex justify-center items-center space-x-2 text-sm text-destructive"><ShieldAlert /><span>You are giving admin priveleges to this user.</span></div> : <></>
+							}</div></>
+					)} /> */}
+					<Field name="role" children={({ state, handleChange }) => (<>
+						<Label htmlFor="role">Role</Label>
+						<div className="flex space-x-2">
+							<Select required value={state.value} onValueChange={(value) => handleChange(value as 'Admin' | 'Technician' | 'Faculty')}>
+								<SelectTrigger className="w-36">
+									<SelectValue placeholder="Select Role" />
+								</SelectTrigger>
+								<SelectContent id="permissions">
+									<SelectItem value="Technician">Technician</SelectItem>
+									<SelectItem value="Faculty">Faculty</SelectItem>
+									<SelectItem value="Admin">Admin</SelectItem>
+								</SelectContent>
+							</Select>{
+								state.value === "Admin" ? <div className="flex justify-center items-center space-x-2 text-sm text-destructive"><ShieldAlert /><span>You are giving admin priveleges to this user.</span></div> : <></>
 							}</div></>
 					)} />
 					<Subscribe selector={(state) => [state.values.permissions]} children={([permissions]) => (

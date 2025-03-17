@@ -15,8 +15,8 @@ const AddInventoryItem = () => {
     const [labs, setLabs] = useState<Laboratory[]>([]);
     const [filteredLabs, setFilteredLabs] = useState<Laboratory[]>([]);
 
-    const [faculties, setFaculties] = useState<string[]>([])
-    const [filteredFaculties, setFilteredFaculties] = useState<string[]>([]);
+    const [faculties, setFaculties] = useState<User[]>([])
+    const [filteredFaculties, setFilteredFaculties] = useState<User[]>([]);
 
     const [technicians, setTechnicians] = useState<User[]>([])
     const [filteredTechnicians, setFilteredTechnicians] = useState<User[]>([]);
@@ -28,12 +28,14 @@ const AddInventoryItem = () => {
             setFilteredLabs(data)
         });
 
-        api("/api/users?filter=0").then(({ data }) => {
+        api("/api/users?role=Technician").then(({ data }) => {
             setTechnicians(data)
+            setFilteredTechnicians(data)
         });
 
-        api("/api/inventory/faculties").then(({ data }) => {
+        api("/api/users?role=Faculty").then(({ data }) => {
             setFaculties(data)
+            setFilteredFaculties(data)
         });
 
     }, []);
@@ -51,8 +53,8 @@ const AddInventoryItem = () => {
             itemAmountInPO: 0,
             poNumber: "",
             poDate: null as Date | null,
-            labInchargeAtPurchase: "",
-            labTechnicianAtPurchase: "",
+            labInchargeAtPurchaseId: "",
+            labTechnicianAtPurchaseId: "",
             equipmentID: "",
             fundingSource: "",
             dateOfInstallation: null as Date | null,
@@ -74,9 +76,31 @@ const AddInventoryItem = () => {
             softcopyOfAMC: null as File | null,
             equipmentPhoto: null as File | null,
         },
-        onSubmit: ({ value: data }) => {
-            console.log(data)
-            // onAddItem(data);
+        onSubmit: async ({ value: data }) => {
+            try {
+                const formData = new FormData();
+                Object.keys(data).forEach(key => {
+                    if ((data as any)[key] !== null) {
+                        formData.append(key, (data as any)[key]);
+                    }
+                });
+
+                toast.info("Submitting...")
+                const response = await api.post("/api/inventory", formData, {
+                    headers: {
+                        "Content-Type": "multipart/form-data",
+                    },
+                });
+
+                if (response.status === 201) {
+                    toast.success("Item added successfully!");
+                } else {
+                    toast.error("Failed to add item.");
+                }
+            } catch (error) {
+                console.error("Error adding item:", error);
+                toast.error("An error occurred while adding the item.");
+            }
         },
     });
 
@@ -86,7 +110,10 @@ const AddInventoryItem = () => {
             <span className="flex justify-center items-center mt-2 mb-10 w-full text-3xl text-primary text-center">Add an item to the inventory</span>
 
             {/* Left Side - Form Fields */}
-            <form className="flex flex-col space-y-6" id="inventory-form" onSubmit={handleSubmit}>
+            <form className="flex flex-col space-y-6" id="inventory-form" onSubmit={(e) => {
+                e.preventDefault()
+                handleSubmit()
+            }}>
                 <span className="text-2xl text-zinc-600">Item Details</span>
                 <div className="grid grid-cols-3 gap-4">
                     <Field name="equipmentID">
@@ -117,7 +144,7 @@ const AddInventoryItem = () => {
                         {(field) => (
                             <div className="flex flex-col space-y-2">
                                 <Label>Quantity</Label>
-                                <Input type="number" value={field.state.value} onChange={(e) => field.handleChange(parseInt(e.target.value))} required />
+                                <Input type="number" min={0} value={field.state.value} onChange={(e) => field.handleChange(parseInt(e.target.value))} required />
                             </div>
                         )}
                     </Field>
@@ -182,7 +209,7 @@ const AddInventoryItem = () => {
                             </div>
                         )}
                     </Field>
-                    <Field name="labInchargeAtPurchase">
+                    <Field name="labInchargeAtPurchaseId">
                         {(field) => (
                             <div className="flex flex-col space-y-2">
                                 <Label>Lab In-charge at Purchase</Label>
@@ -194,23 +221,16 @@ const AddInventoryItem = () => {
                                         <SelectValue placeholder="Select Lab In-charge" />
                                     </SelectTrigger>
                                     <SelectContent onPointerDownOutside={() => setFilteredFaculties(faculties)}>
-                                        <form id="newFacultyForm" className="grid grid-cols-4 gap-x-2" onKeyDown={(e) => e.stopPropagation()} onSubmit={(e: FormEvent<HTMLFormElement>) => {
-                                            e.preventDefault()
-                                            e.stopPropagation()
-
-                                            const formData = new FormData(e.target as HTMLFormElement)
-                                            const newFaculty = formData.get('facultySearch')!.toString()
-                                            setFaculties((prev) => [newFaculty, ...prev])
-                                            field.setValue(newFaculty)
-
-                                        }}><Input name="facultySearch" className="col-span-3" placeholder="Search Faculties..." onChange={(e) => {
-                                            const searcher = new FuzzySearch(faculties, [''], { caseSensitive: false });
-                                            setFaculties(searcher.search(e.target.value));
-                                        }} />
-                                            <Button form="newFacultyForm" onClick={() => setFilteredLabs(labs)}>Add</Button></form>
-                                        {faculties.map((incharge, i) => (
-                                            <SelectItem key={i} value={incharge}>
-                                                {incharge}
+                                        <div className="grid grid-cols-4 gap-x-2" onKeyDown={(e) => e.stopPropagation()}>
+                                            <Input name="facultySearch" className="col-span-3" placeholder="Search Faculties..." onChange={(e) => {
+                                                const searcher = new FuzzySearch(faculties, [''], { caseSensitive: false });
+                                                setFaculties(searcher.search(e.target.value));
+                                            }} />
+                                            <Link to="/settings?view=Users&action=addUser"><Button>Add</Button></Link>
+                                        </div>
+                                        {filteredFaculties.map((incharge, i) => (
+                                            <SelectItem key={i} value={incharge.id}>
+                                                {incharge.name}
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
@@ -218,7 +238,7 @@ const AddInventoryItem = () => {
                             </div>
                         )}
                     </Field>
-                    <Field name="labTechnicianAtPurchase">
+                    <Field name="labTechnicianAtPurchaseId">
                         {(field) => (
                             <div className="flex flex-col space-y-2">
                                 <Label>Lab Technician at Purchase</Label>
@@ -227,14 +247,15 @@ const AddInventoryItem = () => {
                                         <SelectValue placeholder="Select Lab Technician" />
                                     </SelectTrigger>
                                     <SelectContent onPointerDownOutside={() => setFilteredTechnicians(technicians)}>
-                                        {technicians.length ? <Input onKeyDown={(e) => e.stopPropagation()} className="col-span-3" placeholder="Search Technicians..." onChange={(e) => {
-                                            const searcher = new FuzzySearch(technicians, ['name'], { caseSensitive: false });
-                                            setFilteredTechnicians(searcher.search(e.target.value));
-                                        }} /> : <div className="grid grid-cols-4">
-                                            <SelectItem className="col-span-3" value="NA" disabled>No Technicians Added</SelectItem>
-                                            <Link to="/settings?view=Users&&action=addUser"><Button>Add</Button></Link>
-                                        </div>}
-                                        {technicians.map((technician) => (
+                                        {!technicians.length ? <SelectItem className="col-span-3" value="NA" disabled>No Technicians Added</SelectItem> : <></>}
+                                        <div className="grid grid-cols-4">
+                                            <Input onKeyDown={(e) => e.stopPropagation()} className="col-span-3" placeholder="Search Technicians..." onChange={(e) => {
+                                                const searcher = new FuzzySearch(technicians, ['name'], { caseSensitive: false });
+                                                setFilteredTechnicians(searcher.search(e.target.value));
+                                            }} />
+                                            <Link to="/settings?view=Users&action=addUser"><Button>Add</Button></Link>
+                                        </div>
+                                        {filteredTechnicians.map((technician) => (
                                             <SelectItem key={technician.id} value={technician.id}>
                                                 {technician.name}
                                             </SelectItem>
@@ -267,7 +288,7 @@ const AddInventoryItem = () => {
                         {(field) => (
                             <div className="flex flex-col space-y-2">
                                 <Label>Year of Lease</Label>
-                                <Input type="number" value={field.state.value?.toString()} onChange={(e) => field.handleChange(parseInt(e.target.value))} />
+                                <Input type="number" min={2007} value={field.state.value?.toString()} onChange={(e) => field.handleChange(parseInt(e.target.value))} />
                             </div>
                         )}
                     </Field>
@@ -351,7 +372,7 @@ const AddInventoryItem = () => {
                         {(field) => (
                             <div className="flex flex-col space-y-2">
                                 <Label>Vendor POC Email ID</Label>
-                                <Input value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} required />
+                                <Input type="email" value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} required />
                             </div>
                         )}
                     </Field>
