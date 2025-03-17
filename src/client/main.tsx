@@ -9,7 +9,7 @@ import About from './pages/About'
 import Settings from './pages/Settings'
 import { UserPermissionsProvider, useUserPermissions } from './contexts/UserPermissionsProvider'
 import LoginPage from './pages/Login'
-import { Dashboard } from './pages/Dashboard'
+import { Inventory } from './pages/Inventory'
 import NotFound from './pages/NotFound'
 import { Toaster } from 'sonner'
 import NotAllowed from './pages/NotAllowed'
@@ -36,8 +36,9 @@ createRoot(document.getElementById('root')!).render(
             <Route path="/" element={<RedirectHandler />} />
             <Route path='/login' element={<LoginPage />} />
             <Route element={<Layout />}>
-              <Route path='/dashboard' element={<Dashboard />} />
-              <Route path='/about' element={<About />} />
+            <Route path='/dashboard' element={<div>Stats will appear here</div>} />
+            <Route path='/inventory' element={<Inventory />} />
+            <Route path='/about' element={<About />} />
               <Route element={<AdminOnlyRoutes/>}>
                 <Route path='/settings' element={<Settings />} />
                 <Route path='/add-item' element={<AddInventoryItem />} />

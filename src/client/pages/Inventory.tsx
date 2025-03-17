@@ -10,7 +10,7 @@ import axios from "axios";
 import api from "@/axiosInterceptor";
 import { useNavigate } from "react-router";
 
-export const Dashboard = () => {
+export const Inventory = () => {
     const userPermissions = useUserPermissions();
     const [inventoryData, setInventoryData] = useState<InventoryItem[]>([]);
     const [loading, setLoading] = useState(true);
@@ -87,7 +87,7 @@ export const Dashboard = () => {
     }, [userPermissions]);
 
     return (
-        <div className="dashboard p-2">
+        <div className="inventory p-2">
             {loading ? (
                 <div className="flex flex-col w-full h-full space-y-2 my-2">
                     <Skeleton className="w-full h-8" />

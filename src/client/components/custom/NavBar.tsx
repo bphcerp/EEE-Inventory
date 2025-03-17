@@ -1,5 +1,5 @@
 import { Menubar, MenubarMenu, MenubarTrigger, MenubarContent, MenubarItem } from "@/components/ui/menubar";
-import { Home, Layers, Settings, Info, ChartColumn } from "lucide-react";
+import { Home, Layers, Settings, Info, Warehouse } from "lucide-react";
 import { Link } from "react-router";
 import { Input } from "../ui/input";
 import { ChangeEvent, useEffect, useState } from "react";
@@ -7,7 +7,6 @@ import FuzzySearch from 'fuzzy-search';
 import { Laboratory } from "src/server/entities/entities";
 import { useUserPermissions } from "@/contexts/UserPermissionsProvider";
 import { toast } from "sonner";
-import axios from "axios";
 import api from "@/axiosInterceptor";
 
 export const NavBar = () => {
@@ -48,8 +47,8 @@ export const NavBar = () => {
 
       <MenubarMenu>
         <MenubarTrigger>
-          <Link to="/stats" className="flex items-center gap-2">
-            <ChartColumn className="w-5 h-5" /> Stats
+          <Link to="/inventory" className="flex items-center gap-2">
+            <Warehouse className="w-5 h-5" /> Inventory
           </Link>
         </MenubarTrigger>
       </MenubarMenu>

@@ -286,7 +286,7 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                                <div className="grid max-h-56 overflow-y-auto">
+                                <div className={`${table.getAllColumns().length >= 6 && 'grid grid-cols-3'} max-h-56 overflow-y-auto`}>
                                     {table
                                         .getAllColumns()
                                         .filter((column) => column.getCanHide())
