@@ -15,7 +15,7 @@ export const UserPermissionsProvider = ({ children }: { children: ReactNode }) =
     const fetchPermissions = async () => {
         try {
             setOutdated(true)
-            const response = await api('/api/users/permissions');
+            const response = await api('/users/permissions');
             setPermissions(response.data.permissions === 1);
         } catch (error) {
             if (location.pathname !== '/login') {

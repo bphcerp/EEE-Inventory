@@ -1,7 +1,8 @@
-import express from 'express';
-import { addInventoryItem, getFile, getInventory } from '../controllers/inventoryController';
+import { addBulkData, addInventoryItem, getAccessToken, getFile, getInventory } from '../controllers/inventoryController';
 import multer from 'multer';
 import path from 'path';
+import { Router } from 'websocket-express';
+import checkAdminMiddlewareforGET from '../middleware/checkAdminMiddlewareforGet';
 
 // Multer configuration for file uploads
 const storage = multer.diskStorage({
@@ -21,7 +22,7 @@ const upload = multer({ storage }).fields([
     { name: 'equipmentPhoto', maxCount: 1 }
 ]);
 
-const router = express.Router();
+const router = new Router();
 
 // Route to add an inventory item
 router.post('/', upload, addInventoryItem);
@@ -29,7 +30,13 @@ router.post('/', upload, addInventoryItem);
 // Get items
 router.get('/', getInventory)
 
+// Get access token to use the websocket
+router.get('/token',checkAdminMiddlewareforGET, getAccessToken)
+
 // Get file by id (search param 'field': file attribute name)
 router.get('/:id', getFile)
+
+// Websocket listener to bulk add from Excel
+router.ws('/excel', addBulkData);
 
 export default router;

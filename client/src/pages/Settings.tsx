@@ -40,7 +40,7 @@ const Settings = () => {
         return
       }
       setLoading(true);
-      api(`/api/${selectedOption.toLowerCase()}`)
+      api(`/${selectedOption.toLowerCase()}`)
         .then(({data}) => {
           setData(data);
           setLoading(false);
@@ -55,7 +55,7 @@ const Settings = () => {
   }, [selectedOption]);
 
   const handleAddUser = (newUser : Partial<User> & { labIds: string[] } ) => {
-    api.post('/api/users',newUser)
+    api.post('/users',newUser)
     .then(() => {
       fetchData()
       const addUserParam = searchParams.get('action') === 'addUser'

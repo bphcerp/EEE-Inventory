@@ -4,8 +4,9 @@
  */
 
 import { AppDataSource } from "../data-source";
-import { InventoryItem, Laboratory, User } from "../entities/entities";
+import { AccessToken, InventoryItem, Laboratory, User } from "../entities/entities";
 
 export const userRepository = AppDataSource.getRepository(User);
 export const labRepository = AppDataSource.getRepository(Laboratory);
 export const itemRepository = AppDataSource.getRepository(InventoryItem);
+export const tokenRepository = AppDataSource.getRepository(AccessToken);

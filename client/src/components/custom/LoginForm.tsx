@@ -18,7 +18,7 @@ export function LoginForm({
     hosted_domain: 'hyderabad.bits-pilani.ac.in',
     onSuccess: async (tokenResponse) => {
       try {
-        await api.post('/api/auth/signin', { token: tokenResponse.access_token })
+        await api.post('/auth/signin', { token: tokenResponse.access_token })
         navigate('/dashboard', { replace: true })
       }
       catch (err) {

@@ -22,7 +22,7 @@ const AddUserDialog = ({ onAddUser, isOpen, setIsOpen }: AddUserDialogProps) => 
 	const [labs, setLabs] = useState<Laboratory[]>([]);
 
 	useEffect(() => {
-		api("/api/labs")
+		api("/labs")
 			.then(({ data }) => setLabs(data));
 	}, []);
 

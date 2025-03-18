@@ -3,7 +3,7 @@ import { toast } from "sonner";
 
 // Create an Axios instance
 const api = axios.create({
-  baseURL: import.meta.env.VITE_PUBLIC_API_URL!,
+  baseURL: import.meta.env.VITE_PUBLIC_API_URL! + '/api',
   withCredentials: true, // Ensures credentials (cookies, etc.) are sent
 });
 

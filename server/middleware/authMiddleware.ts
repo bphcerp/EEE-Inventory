@@ -18,6 +18,13 @@ declare global {
 
 // Auth Middleware to verify the token
 const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
+
+    if (req.headers.upgrade && req.headers.upgrade.toLowerCase() === 'websocket') {
+        // WebSocket request detected
+        next()
+        return
+    }
+
     // Cookie Parser is used as middleware before this to parse the cookies
     const token = req.cookies.token;
 

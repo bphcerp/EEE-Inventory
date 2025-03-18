@@ -11,7 +11,7 @@ export const Header = () => {
     const navigate = useNavigate()
 
     const handleLogout = () => {
-        api.post("/api/auth/signout")
+        api.post("/auth/signout")
             .then(() => {
                 navigate("/login")
             })

@@ -7,6 +7,15 @@ export interface User {
     laboratories?: Laboratory[];
 }
 
+
+export interface ValidSheet {
+    sheetName: string
+    index: number
+    rowOffset: number
+    columnOffset: number
+    dataOffset: number
+}
+
 export interface Laboratory {
     id: string;
     name: string;
@@ -19,7 +28,7 @@ export interface InventoryItem {
     itemCategory: string;
     itemName: string;
     specifications: string;
-    quantity: number;
+    quantity: string;
     noOfLicenses?: number;
     natureOfLicense?: string;
     yearOfLease?: number;

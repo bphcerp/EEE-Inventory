@@ -3,7 +3,7 @@
  * @description This file contains the entity definitions for the User, Laboratory, and InventoryItem entities used in the EEE-Inventory system.
  */
 
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinTable, ManyToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinTable, ManyToMany, Generated, OneToOne, JoinColumn } from 'typeorm';
 
 // User entity
 @Entity()
@@ -11,10 +11,11 @@ export class User {
     @PrimaryGeneratedColumn("uuid")
     id: string;
 
-    @Column("text")
+    @Column("text", { unique: true })
     name: string;
 
-    @Column({ type: "text", unique: true })
+    //Email is nullable for excel data entry.
+    @Column({ type: "text", unique: true, nullable: true })
     email: string;
 
     @Column({ type: "enum", enum: [0, 1] })
@@ -41,7 +42,21 @@ export class Laboratory {
     @ManyToMany(() => User, (user) => user.laboratories)
     @JoinTable()
     technicians: User[];
-}   
+} 
+
+// AccessToken entity
+@Entity()
+export class AccessToken {
+    @PrimaryGeneratedColumn("uuid")
+    id: string;
+    
+    @OneToOne(() => User)
+    @JoinColumn()
+    admin: User
+
+    @Column("timestamp with time zone")
+    tokenExpiry: Date;
+}
 
 // InventoryItem entity
 @Entity()
@@ -49,7 +64,7 @@ export class InventoryItem {
     @PrimaryGeneratedColumn("uuid")
     id: string;
 
-    @ManyToOne(() => Laboratory)
+    @ManyToOne(() => Laboratory, { cascade: ['insert'] })
     lab: Laboratory; // Foreign key to the laboratory
 
     @Column("text")
@@ -61,8 +76,8 @@ export class InventoryItem {
     @Column("text")
     specifications: string; // Specifications of the item
 
-    @Column("int")
-    quantity: number; // Quantity of the item
+    @Column("text")
+    quantity: string; // Quantity of the item
 
     @Column("int", { nullable: true })
     noOfLicenses?: number; // Number of licenses (if applicable)
@@ -76,16 +91,16 @@ export class InventoryItem {
     @Column("decimal", { precision: 15, scale: 2 })
     itemAmountInPO: number; // Amount of the item in the purchase order
 
-    @Column("text")
+    @Column("text", { nullable: true })
     poNumber: string; // Purchase order number
 
-    @Column("date")
+    @Column("date", { nullable: true })
     poDate: Date; // Purchase order date
 
-    @ManyToOne(() => User, { nullable: true })
+    @ManyToOne(() => User, { nullable: true, cascade:['insert'] })
     labInchargeAtPurchase?: User; // Lab in-charge at the time of purchase
 
-    @ManyToOne(() => User, { nullable: true })
+    @ManyToOne(() => User, { nullable: true, cascade:['insert'] })
     labTechnicianAtPurchase?: User; // Lab technician at the time of purchase
 
     @Column("text")

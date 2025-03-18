@@ -15,7 +15,7 @@ export const NavBar = () => {
   const userPermissions = useUserPermissions()
 
   useEffect(() => {
-    api('/api/labs').then(({data}) => {
+    api('/labs').then(({data}) => {
       setLabs(data);
       setFilteredLabs(data);
     })

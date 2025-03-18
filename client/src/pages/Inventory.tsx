@@ -21,7 +21,7 @@ export const Inventory = () => {
 
     const fetchFile = async (field: string, id: string) => {
         try {
-            const response = await axios.get(`/api/inventory/${id}?field=${field}`, { responseType: 'blob' });
+            const response = await axios.get(`/inventory/${id}?field=${field}`, { responseType: 'blob' });
             const url = window.URL.createObjectURL(response.data);
             const newWindow = window.open(url, '_blank', 'noopener,noreferrer');
             if (newWindow) {
@@ -46,7 +46,7 @@ export const Inventory = () => {
         { accessorKey: 'labTechnicianAtPurchase', header: 'Lab Technician at Purchase', cell: ({ getValue }) => (getValue() as User)?.name ?? 'NA' },
 
         // Unpinned columns
-        { accessorKey: 'quantity', header: 'Quantity', meta: { filterType: 'number-range' as TableFilterType } },
+        { accessorFn: (row) => row.quantity.toString() , header: 'Quantity', meta: { filterType: 'number-range' as TableFilterType } },
         { accessorKey: 'itemAmountInPO', header: 'Amount in PO', cell: ({ getValue }) => (Number(getValue())).toLocaleString('en-IN', { style: "currency", currency: "INR" }), meta: { filterType: 'number-range' as TableFilterType } },
         { accessorKey: 'poDate', header: 'PO Date', meta: { filterType: 'date-range' as TableFilterType } },
         { accessorKey: 'vendorName', header: 'Vendor Name', meta: { filterType: 'dropdown' as TableFilterType } },
@@ -76,7 +76,7 @@ export const Inventory = () => {
 
     useEffect(() => {
         const timer = setTimeout(() => setLoading(true), 2000);
-        api(showAllLabs ? '/api/inventory?allLabs=true' : '/api/inventory')
+        api(showAllLabs ? '/inventory?allLabs=true' : '/inventory')
             .then(({ data }) => setInventoryData(data))
             .catch(error => {
                 toast.error('Error fetching inventory data:')

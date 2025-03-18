@@ -24,17 +24,17 @@ const AddInventoryItem = () => {
     const location = useLocation()
 
     useEffect(() => {
-        api("/api/labs").then(({ data }) => {
+        api("/labs").then(({ data }) => {
             setLabs(data)
             setFilteredLabs(data)
         });
 
-        api("/api/users?role=Technician").then(({ data }) => {
+        api("/users?role=Technician").then(({ data }) => {
             setTechnicians(data)
             setFilteredTechnicians(data)
         });
 
-        api("/api/users?role=Faculty").then(({ data }) => {
+        api("/users?role=Faculty").then(({ data }) => {
             setFaculties(data)
             setFilteredFaculties(data)
         });
@@ -87,7 +87,7 @@ const AddInventoryItem = () => {
                 });
 
                 toast.info("Submitting...")
-                const response = await api.post("/api/inventory", formData);
+                const response = await api.post("/inventory", formData);
 
                 if (response.status === 201) {
                     toast.success("Item added successfully!");
