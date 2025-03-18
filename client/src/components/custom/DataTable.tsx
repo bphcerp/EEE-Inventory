@@ -125,7 +125,7 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
         table.getAllColumns().map((column) => {
             setCellStyleMap(prev => ({ ...prev, [column.id]: getCommonPinningStyles(column) }))
         })
-    }, [])
+    }, [table.getState().pagination.pageSize])
 
     const getCommonPinningStyles = (column: Column<T>): CSSProperties => {
         const isPinned = column.getIsPinned()
@@ -373,12 +373,21 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
                                         />
                                     </TableCell>
                                     {row.getVisibleCells().map((cell) => (
-                                        <TableCell className={(cell.column.columnDef.meta && ['date-range', 'number-range'].includes(cell.column.columnDef.meta.filterType ?? '')) ? 'text-center' : ''} style={{ ...cellStyleMap[cell.column.id] }} key={cell.id}>
+                                        <TableCell 
+                                            className={` ${(cell.column.columnDef.meta && ['date-range', 'number-range'].includes(cell.column.columnDef.meta.filterType ?? '')) ? 'text-center' : ''}`} 
+                                            style={{ ...cellStyleMap[cell.column.id] }} 
+                                            key={cell.id}
+                                            title={cell.getValue() && (cell.getValue() as any).toString().length > 20 ? (cell.getValue() as any).toString() : undefined}
+                                        >
                                             {
-                                                cell.getValue() ? flexRender(
-                                                    cell.column.columnDef.cell,
-                                                    cell.getContext()
-                                                ) : "Not set"
+                                                (cell.getValue() && typeof cell.getValue() === 'string' )
+                                                    ? (cell.getValue() as string).length > 30 
+                                                        ? `${(cell.getValue() as string).slice(0, 20)}...` 
+                                                        : flexRender(
+                                                            cell.column.columnDef.cell,
+                                                            cell.getContext()
+                                                        ) 
+                                                    : "Not set"
                                             }
                                         </TableCell>
                                     ))}

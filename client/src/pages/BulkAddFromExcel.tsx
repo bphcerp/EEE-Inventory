@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import api from "@/axiosInterceptor";
 import SelectLabStage from "./SelectLabStage";
 import { ValidSheet } from "@/types/types";
+import ProcessingStage from "./ProcessingStage";
+import { Check } from "lucide-react";
 
 const BulkAddFromExcel = () => {
   const [stage, setStage] = useState(1);
@@ -118,7 +120,17 @@ const BulkAddFromExcel = () => {
           sendMessage(await file.arrayBuffer())
         }} /> : stage === 2 ? <SelectLabStage sheets={validSheets} onSubmit={(selectedSheets) => {
           sendJsonMessage({stage : 3, selectedSheets })
-        }}  /> :  <></>}
+        }}  /> : stage === 3 ?  <ProcessingStage /> : (
+          <div className="flex flex-col items-center space-y-4">
+            <Check className="w-16 h-16 text-green-500" />
+            <span className="text-xl font-semibold text-center text-primary">
+              Data has been successfully uploaded!
+            </span>
+            <p className="text-sm text-gray-600 text-center">
+              Note: New users created will not have emails set. If you want to edit their access, please go to the settings page.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

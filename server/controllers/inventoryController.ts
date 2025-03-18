@@ -67,6 +67,18 @@ async function findOrCreateLab(labName: string): Promise<Laboratory> {
     if (!existingLab) {
         existingLab = new Laboratory();
         existingLab.name = labName;
+        existingLab = await labRepository.save(existingLab)
+
+        try {
+            existingLab = await labRepository.save(existingLab);
+        } catch (error) {
+            // If the error is due to a unique constraint violation, try finding the user again
+            if ((error as any).code === '23505') { // PostgreSQL unique violation error code
+                existingLab = await labRepository.findOneBy({ name: labName });
+                return existingLab!
+            }
+        }
+
     }
     return existingLab;
 }
@@ -77,13 +89,26 @@ async function findOrCreateUser(userName: string, type: 'Faculty' | 'Technician'
     if (!existingUser) {
         existingUser = new User();
         existingUser.name = userName;
+        existingUser.permissions = 0
+        existingUser.role = type
+
+        try {
+            existingUser = await userRepository.save(existingUser);
+        } catch (error) {
+            // If the error is due to a unique constraint violation, try finding the user again
+            if ((error as any).code === '23505') { // PostgreSQL unique violation error code
+                existingUser = await userRepository.findOneBy({ name: userName });
+                return existingUser!
+            }
+        }
+
     }
     return existingUser;
 }
 
 // Some dates have dots in them
 const parseDate = (date: string | Date) => {
-    const parsedDate =  parser.fromAny(date)
+    const parsedDate = parser.fromAny(date)
     return parsedDate.invalid ? null : parsedDate
 }
 
@@ -246,6 +271,7 @@ export const addBulkData = async (req: Request, res: WSResponse) => {
                 // Stage - 3 Response Selected Labs
 
                 const msgJSON = JSON.parse(msg)
+                ws.send(JSON.stringify({ stage: 3 }))
                 const allItemsToBeAdded = await Promise.all(getAndSaveDataFromSheets(savePath, msgJSON.selectedSheets))
                 const allItemsToBeAddedFlattened = allItemsToBeAdded.flat()
 

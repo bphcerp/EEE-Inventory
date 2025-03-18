@@ -97,10 +97,10 @@ export class InventoryItem {
     @Column("date", { nullable: true })
     poDate: Date; // Purchase order date
 
-    @ManyToOne(() => User, { nullable: true, cascade:['insert'] })
+    @ManyToOne(() => User, { nullable: true })
     labInchargeAtPurchase?: User; // Lab in-charge at the time of purchase
 
-    @ManyToOne(() => User, { nullable: true, cascade:['insert'] })
+    @ManyToOne(() => User, { nullable: true })
     labTechnicianAtPurchase?: User; // Lab technician at the time of purchase
 
     @Column("text")
