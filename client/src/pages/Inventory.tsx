@@ -5,9 +5,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
-import axios from "axios";
 import api from "@/axiosInterceptor";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { InventoryItem, User } from "@/types/types";
 
 export const Inventory = () => {
@@ -18,20 +17,6 @@ export const Inventory = () => {
     const [showAllLabs, setShowAllLabs] = useState(Boolean(userPermissions));
 
     const navigate = useNavigate()
-
-    const fetchFile = async (field: string, id: string) => {
-        try {
-            const response = await axios.get(`/inventory/${id}?field=${field}`, { responseType: 'blob' });
-            const url = window.URL.createObjectURL(response.data);
-            const newWindow = window.open(url, '_blank', 'noopener,noreferrer');
-            if (newWindow) {
-                newWindow.document.title = `${field}.pdf`;
-            }
-        } catch (error) {
-            toast.error('Error fetching file');
-            console.error(error);
-        }
-    };
 
     const columns: ColumnDef<InventoryItem>[] = [
 
@@ -66,11 +51,11 @@ export const Inventory = () => {
         { accessorKey: 'warrantyTo', header: 'Warranty To', meta: { filterType: 'date-range' as TableFilterType } },
         { accessorKey: 'amcFrom', header: 'AMC From', meta: { filterType: 'date-range' as TableFilterType } },
         { accessorKey: 'amcTo', header: 'AMC To', meta: { filterType: 'date-range' as TableFilterType } },
-        { accessorKey: 'softcopyOfPO', header: 'Softcopy of PO', cell: ({ row, getValue }) => (getValue() as string | null) ? <Button variant="link" onClick={() => fetchFile('softcopyOfPO', row.original.id)}>View</Button> : "Not Uploaded" },
-        { accessorKey: 'softcopyOfInvoice', header: 'Softcopy of Invoice', cell: ({ row, getValue }) => (getValue() as string | null) ? <Button variant="link" onClick={() => fetchFile('softcopyOfInvoice', row.original.id)}>View</Button> : "Not Uploaded" },
-        { accessorKey: 'softcopyOfNFA', header: 'Softcopy of NFA', cell: ({ row, getValue }) => (getValue() as string | null) ? <Button variant="link" onClick={() => fetchFile('softcopyOfNFA', row.original.id)}>View</Button> : "Not Uploaded" },
-        { accessorKey: 'softcopyOfAMC', header: 'Softcopy of AMC', cell: ({ row, getValue }) => (getValue() as string | null) ? <Button variant="link" onClick={() => fetchFile('softcopyOfAMC', row.original.id)}>View</Button> : "Not Uploaded" },
-        { accessorKey: 'equipmentPhoto', header: 'Equipment Photo', cell: ({ row, getValue }) => (getValue() as string | null) ? <Button variant="link" onClick={() => fetchFile('equipmentPhoto', row.original.id)}>View</Button> : "Not Uploaded" },
+        { accessorKey: 'softcopyOfPO', header: 'Softcopy of PO', cell: ({ getValue }) => (getValue() as string | null) ? <Link to={getValue()!}><Button variant="link">View</Button></Link> : "Not Uploaded" },
+        { accessorKey: 'softcopyOfInvoice', header: 'Softcopy of Invoice', cell: ({ getValue }) => (getValue() as string | null) ? <Link to={getValue()!}><Button variant="link">View</Button></Link> : "Not Uploaded" },
+        { accessorKey: 'softcopyOfNFA', header: 'Softcopy of NFA', cell: ({ getValue }) => (getValue() as string | null) ? <Link to={getValue()!}><Button variant="link">View</Button></Link> : "Not Uploaded" },
+        { accessorKey: 'softcopyOfAMC', header: 'Softcopy of AMC', cell: ({ getValue }) => (getValue() as string | null) ? <Link to={getValue()!}><Button variant="link">View</Button></Link> : "Not Uploaded" },
+        { accessorKey: 'equipmentPhoto', header: 'Equipment Photo', cell: ({ getValue }) => (getValue() as string | null) ? <Link to={getValue()!}><Button variant="link">View</Button></Link> : "Not Uploaded" },
         { accessorKey: 'remarks', header: 'Remarks' },
     ];
 

@@ -38,6 +38,7 @@ import {
     TableRow,
 } from "@/components/ui/table"
 import { CSSProperties, ReactNode, useEffect, useState } from "react"
+import OverflowHandler from "./OverflowHandler"
 
 interface DataTableProps<T> {
     data: T[];
@@ -90,18 +91,22 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
     }
 
     const multiFilterFn = (row: Row<T>, columnId: string, filterValue: any) => {
-        console.log(filterValue)
         if (!filterValue || filterValue.length === 0) return true
         return filterValue.includes(row.getValue(columnId))
-      }
+    }
 
     const table = useReactTable({
         data,
         columns: columns.map((columnDef) => ({
             ...columnDef,
-            ...(columnDef.meta ? columnDef.meta.filterType === 'date-range' ?  { filterFn : isWithinRange} : columnDef.meta.filterType === 'multiselect' ? { filterFn : multiFilterFn} : {} : {})
+            ...(columnDef.meta ? columnDef.meta.filterType === 'date-range' ? { filterFn: isWithinRange } : columnDef.meta.filterType === 'multiselect' ? { filterFn: multiFilterFn } : {} : {})
         })),
-        initialState,
+        initialState: {
+            ...initialState,
+            pagination: {
+                pageSize: 5
+            }
+        },
         enableColumnPinning: true,
         onSortingChange: setSorting,
         onColumnFiltersChange: setColumnFilters,
@@ -122,10 +127,12 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
     })
 
     useEffect(() => {
-        table.getAllColumns().map((column) => {
+        for (const column of table.getAllColumns()) {
+            console.log(getCommonPinningStyles(table.getColumn('itemCategory')!))
             setCellStyleMap(prev => ({ ...prev, [column.id]: getCommonPinningStyles(column) }))
-        })
-    }, [table.getState().pagination.pageSize])
+        }
+
+    }, [table.getRowModel().rows])
 
     const getCommonPinningStyles = (column: Column<T>): CSSProperties => {
         const isPinned = column.getIsPinned()
@@ -140,7 +147,7 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
                 boxShadow: '-2px 0 4px -4px var(--primary) inset'
             }),
             left: isPinned === 'left' ? `${computedJSWidth}px` : undefined,
-            position: isPinned ? 'sticky' : 'relative',
+            position: isPinned ? 'sticky' : undefined,
             zIndex: isPinned ? 10 : 0,
         }
     }
@@ -330,17 +337,34 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
                     <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (
                             <TableRow key={headerGroup.id}>
-                                <TableHead className="z-2 bg-(--background) sticky left-0 h-full w-[20px]">
-                                    <Checkbox
-                                        checked={
-                                            table.getIsAllPageRowsSelected() ||
-                                            (table.getIsSomePageRowsSelected() && "indeterminate")
-                                        }
-                                        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-                                        aria-label="Select all"
-                                    />
-                                </TableHead>
-                                {headerGroup.headers.map((header) => {
+                                <div className="flex sticky left-0 bg-background">
+                                    <TableHead className="z-2 w-[20px]">
+                                        <Checkbox
+                                            checked={
+                                                table.getIsAllPageRowsSelected() ||
+                                                (table.getIsSomePageRowsSelected() && "indeterminate")
+                                            }
+                                            onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+                                            aria-label="Select all"
+                                        />
+                                    </TableHead>
+                                    {headerGroup.headers.filter((header) => header.column.getIsPinned()).map((header) => {
+                                        return (
+                                            <TableHead className="w-full h-full" id={header.column.id} colSpan={header.colSpan} key={header.id}>
+                                                <div className={`flex flex-col w-max gap-y-2`}>
+                                                    {header.isPlaceholder
+                                                        ? null
+                                                        : flexRender(
+                                                            header.column.columnDef.header,
+                                                            header.getContext()
+                                                        )}
+                                                    {(!mainSearchColumn || header.column.columnDef.header?.toString().toLowerCase() !== mainSearchColumn.toString().toLowerCase()) && renderFilter(header.column)}
+                                                </div>
+                                            </TableHead>
+                                        )
+                                    })}
+                                </div>
+                                {headerGroup.headers.filter((header) => !header.column.getIsPinned()).map((header) => {
                                     return (
                                         <TableHead id={header.column.id} colSpan={header.colSpan} style={{ ...cellStyleMap[header.column.id] }} key={header.id}>
                                             <div className={`flex flex-col w-max text-center items-start gap-y-2 py-2`}>
@@ -363,31 +387,50 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
                             table.getRowModel().rows.map((row) => (
                                 <TableRow
                                     key={row.id}
+
                                     data-state={row.getIsSelected() && "selected"}
                                 >
-                                    <TableCell className="z-2 bg-(--background) sticky left-0 w-[20px]">
-                                        <Checkbox
-                                            checked={row.getIsSelected()}
-                                            onCheckedChange={(value) => row.toggleSelected(!!value)}
-                                            aria-label="Select row"
-                                        />
-                                    </TableCell>
-                                    {row.getVisibleCells().map((cell) => (
-                                        <TableCell 
-                                            className={` ${(cell.column.columnDef.meta && ['date-range', 'number-range'].includes(cell.column.columnDef.meta.filterType ?? '')) ? 'text-center' : ''}`} 
-                                            style={{ ...cellStyleMap[cell.column.id] }} 
+                                    <div className="flex sticky left-0 bg-background">
+                                        <TableCell className="z-2 w-[20px]">
+                                            <Checkbox
+                                                checked={row.getIsSelected()}
+                                                onCheckedChange={(value) => row.toggleSelected(!!value)}
+                                                aria-label="Select row"
+                                            />
+                                        </TableCell>
+                                        <div className={`grid w-[${40 - 10 * (table.getAllColumns().filter(column => (column.getIsPinned())).length - table.getAllColumns().filter(column => (column.getIsVisible() && column.getIsPinned())).length)}rem] grid-cols-${table.getAllColumns().filter(column => (column.getIsVisible() && column.getIsPinned())).length}`}>
+                                            {row.getVisibleCells().filter((cell) => cell.column.getIsPinned()).map((cell) => (
+                                                <TableCell
+                                                    className={`${(cell.column.columnDef.meta && ['date-range', 'number-range'].includes(cell.column.columnDef.meta.filterType ?? '')) ? 'text-center' : ''}`}
+                                                    key={cell.id}
+                                                    title={cell.getValue() && (cell.getValue() as any).toString().length > 20 ? (cell.getValue() as any).toString() : undefined}
+                                                >
+                                                    {
+                                                        (cell.column.columnDef.cell && typeof cell.getValue() !== 'string') ?
+                                                            flexRender(
+                                                                cell.column.columnDef.cell,
+                                                                cell.getContext()
+                                                            ) :
+                                                            <OverflowHandler text={cell.getValue() as string} />
+                                                    }
+                                                </TableCell>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    {row.getVisibleCells().filter((cell) => !cell.column.getIsPinned()).map((cell) => (
+                                        <TableCell
+                                            className={` ${(cell.column.columnDef.meta && ['date-range', 'number-range'].includes(cell.column.columnDef.meta.filterType ?? '')) ? 'text-center' : ''}`}
+                                            style={{ ...cellStyleMap[cell.column.id] }}
                                             key={cell.id}
                                             title={cell.getValue() && (cell.getValue() as any).toString().length > 20 ? (cell.getValue() as any).toString() : undefined}
                                         >
                                             {
-                                                (cell.getValue() && typeof cell.getValue() === 'string' )
-                                                    ? (cell.getValue() as string).length > 30 
-                                                        ? `${(cell.getValue() as string).slice(0, 20)}...` 
-                                                        : flexRender(
-                                                            cell.column.columnDef.cell,
-                                                            cell.getContext()
-                                                        ) 
-                                                    : "Not set"
+                                                cell.getValue() ? (columns.find(column => column.header === cell.column.columnDef.header)?.cell || typeof cell.getValue() !== 'string') ?
+                                                    flexRender(
+                                                        cell.column.columnDef.cell,
+                                                        cell.getContext()
+                                                    ) :
+                                                    <OverflowHandler text={cell.getValue() as string} /> : <span>Not Provided</span>
                                             }
                                         </TableCell>
                                     ))}
