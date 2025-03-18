@@ -1,0 +1,33 @@
+services:
+  client:
+    build: client
+    ports:
+      - "3000:3000"
+    env_file:
+      - client/.env
+    depends_on:
+      - server
+
+  server:
+    build: server
+    ports:
+      - "4000:4000"
+    environment:
+      - NODE_ENV=production
+    env_file:
+      - server/.env
+    depends_on:
+      - pg
+
+  pg:
+    image: postgres:15
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    env_file:
+      - server/.env
+    volumes:
+      - /home/ubuntu/eee-inv-pg-data:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

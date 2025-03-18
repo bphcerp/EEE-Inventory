@@ -1,7 +1,7 @@
 uploads
 node_modules/
 .env*
-
+dist
 temp
 
 !.env.development

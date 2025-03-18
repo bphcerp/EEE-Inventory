@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Link, useNavigate } from "react-router";
+import { Link } from "react-router";
 import useWebSocket, { resetGlobalState } from 'react-use-websocket'
 import { UploadStage } from "./UploadStage";
 import { toast } from "sonner";
@@ -18,8 +18,6 @@ const BulkAddFromExcel = () => {
   const [validSheets, setValidSheets] = useState<ValidSheet[]>([])
 
   const [accessToken, setAccessToken] = useState('')
-
-  const navigate = useNavigate()
 
   const socketUrl = `${import.meta.env.VITE_PUBLIC_API_URL.replace(/^http/, 'ws')}/api/inventory/excel`
   const { sendJsonMessage, lastJsonMessage, sendMessage, getWebSocket } = useWebSocket(socketUrl, {
