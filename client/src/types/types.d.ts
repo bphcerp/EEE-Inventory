@@ -1,12 +1,10 @@
 export interface User {
     id: string;
     name: string;
-    email: string;
+    email?: string;
     permissions: 0 | 1;
     role: "Admin" | "Technician" | "Faculty";
-    laboratories?: Laboratory[];
 }
-
 
 export interface ValidSheet {
     sheetName: string
@@ -19,7 +17,18 @@ export interface ValidSheet {
 export interface Laboratory {
     id: string;
     name: string;
-    technicians: User[];
+    code: string;
+    technicianInCharge?: User;
+    facultyInCharge?: User;
+}
+
+export interface Vendor {
+    id: string;
+    name: string;
+    address?: string;
+    pocName: string;
+    phoneNumber: string;
+    email: string;
 }
 
 export interface InventoryItem {
@@ -32,19 +41,15 @@ export interface InventoryItem {
     noOfLicenses?: number;
     natureOfLicense?: string;
     yearOfLease?: number;
-    itemAmountInPO: number;
-    poNumber: string;
-    poDate: Date;
-    labInchargeAtPurchase?: User;
-    labTechnicianAtPurchase?: User;
+    poAmount: number;
+    poNumber?: string; 
+    poDate?: Date;
+    labInchargeAtPurchase?: string
+    labTechnicianAtPurchase?: string;
     equipmentID: string;
     fundingSource: string;
     dateOfInstallation?: Date;
-    vendorName: string;
-    vendorAddress: string;
-    vendorPOCName: string;
-    vendorPOCPhoneNumber: string;
-    vendorPOCEmailID: string;
+    vendor: Vendor;
     warrantyFrom?: Date;
     warrantyTo?: Date;
     amcFrom?: Date;

@@ -4,7 +4,7 @@
 */
 
 import { Request, Response } from 'express';
-import { userRepository } from '../repositories/repositories';
+import { labRepository, userRepository } from '../repositories/repositories';
 import { AppDataSource } from '../data-source';
 import { User } from '../entities/entities';
 
@@ -32,7 +32,6 @@ export const getAllUsers = async (req: Request, res: Response) => {
     try {
         const users = await userRepository.find({
             ...( role ? { where : { role : (role as 'Admin' | 'Technician' | 'Faculty') } } : {} ),
-            relations: ['laboratories']
         });
 
         res.status(200).json(users);
@@ -47,12 +46,9 @@ export const getAllUsers = async (req: Request, res: Response) => {
 // The user object is available in the request object after the middleware is executed
 export const getUserLabs = async (req: Request, res: Response) => {
     try {
-        const user = await userRepository.findOne({
-            where: { id: req.user!.id },
-            relations: ['laboratories']
-        });
+        const labs = await labRepository.findBy(req.user?.role === 'Technician' ? { technicianInCharge: req.user! } : req.user?.role === 'Faculty' ? { facultyInCharge : req.user! } : {});
 
-        res.status(200).json(user!.laboratories);
+        res.status(200).json(labs);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching laboratories', error });
         console.error(error);
@@ -61,7 +57,7 @@ export const getUserLabs = async (req: Request, res: Response) => {
 
 // Add User Controller
 export const addUser = async (req: Request, res: Response) => {
-    const { name, email, permissions,role, labIds } = req.body;
+    const { name, email, permissions,role } = req.body;
 
     const queryRunner = AppDataSource.createQueryRunner();
     await queryRunner.connect();
@@ -73,7 +69,6 @@ export const addUser = async (req: Request, res: Response) => {
         user.name = name
         user.permissions = permissions;
         user.role = role
-        user.laboratories = (labIds as string[]).map((id) => ({ id })) as any
         await queryRunner.manager.save(user);
 
         await queryRunner.commitTransaction();

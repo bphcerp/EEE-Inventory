@@ -51,7 +51,7 @@ const AddInventoryItem = () => {
             noOfLicenses: null as number | null,
             natureOfLicense: "",
             yearOfLease: null as number | null,
-            itemAmountInPO: 0,
+            poAmount: 0,
             poNumber: "",
             poDate: null as Date | null,
             labInchargeAtPurchaseId: "",
@@ -297,10 +297,10 @@ const AddInventoryItem = () => {
                             </div>
                         )}
                     </Field>
-                    <Field name="itemAmountInPO">
+                    <Field name="poAmount">
                         {(field) => (
                             <div className="flex flex-col space-y-2">
-                                <Label>Item Amount in PO</Label>
+                                <Label>Item PO Amount</Label>
                                 <Input type="number" value={field.state.value} onChange={(e) => field.handleChange(parseFloat(e.target.value))} required />
                             </div>
                         )}

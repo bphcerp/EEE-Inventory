@@ -37,7 +37,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table"
-import { CSSProperties, ReactNode, useEffect, useRef, useState } from "react"
+import { ReactNode, useEffect, useRef, useState } from "react"
 import OverflowHandler from "./OverflowHandler"
 
 interface DataTableProps<T> {
@@ -370,7 +370,7 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
                                             aria-label="Select all"
                                         />
                                     </TableHead>
-                                    {headerGroup.headers.filter((header) => header.column.getIsPinned()).map((header,i) => {
+                                    {headerGroup.headers.filter((header) => header.column.getIsPinned()).map((header) => {
                                         return (
                                             <TableHead style={{ left:document.getElementById(header.column.id)?.offsetLeft }} className={`sticky bg-background h-full`} id={header.column.id} colSpan={header.colSpan} key={header.id}>
                                                 <div className={`flex flex-col w-max gap-y-2`}>
@@ -431,7 +431,7 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
                                                                 cell.column.columnDef.cell,
                                                                 cell.getContext()
                                                             ) :
-                                                            <OverflowHandler text={cell.getValue() as string} />
+                                                            <OverflowHandler text={cell.getValue() as string} maxWidth={cell.column.getSize()} />
                                                     }
                                                 </TableCell>
                                             ))}
@@ -447,7 +447,7 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
                                                         cell.column.columnDef.cell,
                                                         cell.getContext()
                                                     ) :
-                                                    <OverflowHandler text={cell.getValue() as string} /> : <div className="w-full text-start p-0.5">Not Provided</div>
+                                                    <OverflowHandler text={cell.getValue() as string} maxWidth={cell.column.getSize()} /> : <div className="w-full text-start p-0.5">Not Provided</div>
                                             }
                                         </TableCell>
                                     ))}

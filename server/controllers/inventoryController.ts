@@ -121,12 +121,12 @@ async function mapToInventoryItem(data: any[]): Promise<any> {
         noOfLicenses: data[5] !== "NA" ? Number(data[5]) : undefined,
         natureOfLicense: data[6] !== "NA" ? data[6] : undefined,
         yearOfLease: data[7] !== "NA" ? Number(data[7]) : undefined,
-        itemAmountInPO: data[8] ? typeof data[8] === 'string' ? parseFloat(data[8].replace(/,/g, "")) : data[8] : 0, // Convert to number, removing commas
+        poAmount: data[8] ? typeof data[8] === 'string' ? parseFloat(data[8].replace(/,/g, "")) : data[8] : 0, // Convert to number, removing commas
         poNumber: data[10],
         poDate: parseDate(data[12]),
         lab: await findOrCreateLab(data[14]),
-        labInchargeAtPurchase: await findOrCreateUser(data[15], 'Faculty'), // Needs to be mapped to a User entity if available
-        labTechnicianAtPurchase: await findOrCreateUser(data[16], 'Technician'), // Needs to be mapped to a User entity if available
+        labInchargeAtPurchase: data[15],
+        labTechnicianAtPurchase: data[16],
         equipmentID: data[17] || "Not Provided", // Use empty string if null
         fundingSource: data[18],
         dateOfInstallation: parseDate(data[19]),
@@ -321,8 +321,6 @@ export const addInventoryItem = async (req: Request, res: Response) => {
 
         const newItem = itemRepository.create(formData as Object);
         newItem.lab = req.body.labId ? { id: req.body.labId } as any : undefined
-        newItem.labTechnicianAtPurchase = req.body.labTechnicianAtPurchaseId ? { id: req.body.labTechnicianAtPurchaseId } as any : undefined
-        newItem.labInchargeAtPurchase = req.body.labInchargeAtPurchaseId ? { id: req.body.labInchargeAtPurchaseId } as any : undefined
         const result = await itemRepository.save(newItem);
         res.status(201).json(result);
     } catch (error) {
@@ -334,12 +332,10 @@ export const addInventoryItem = async (req: Request, res: Response) => {
 
 // Get all items from the inventory
 export const getInventory = async (req: Request, res: Response) => {
-    const { allLabs } = req.query;
 
     try {
         const items = await itemRepository.find({
-            ...(!allLabs ? { where: { lab: In(req.user!.laboratories ?? []) } } : {}),
-            relations: ['lab', 'labInchargeAtPurchase', 'labTechnicianAtPurchase']
+            relations: ['lab']
         });
 
         res.status(200).json(items);

@@ -1,6 +1,6 @@
 import "reflect-metadata"
 import { DataSource } from "typeorm"
-import { AccessToken, InventoryItem, Laboratory, User } from "./entities/entities"
+import { AccessToken, InventoryItem, Laboratory, User, Vendor } from "./entities/entities"
 import { config } from "dotenv";
 import path from "path";
 
@@ -23,7 +23,7 @@ export const AppDataSource = new DataSource({
     database: POSTGRES_DB,
     synchronize: true, // Change in production
     logging: ['error'],
-    entities: [User, Laboratory, InventoryItem, AccessToken],
+    entities: [User, Laboratory, InventoryItem, AccessToken, Vendor],
     migrations: [],
     subscribers: [],
 })

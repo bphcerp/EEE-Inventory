@@ -1,4 +1,4 @@
-import { useState, useEffect, Dispatch, SetStateAction } from "react";
+import { Dispatch, SetStateAction } from "react";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,11 +6,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useForm } from '@tanstack/react-form'
 import { Label } from "../ui/label";
 import { toast } from "sonner";
-import { ChevronDown, ShieldAlert } from "lucide-react";
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "../ui/dropdown-menu";
+import { ShieldAlert } from "lucide-react";
 import { DialogDescription } from "@radix-ui/react-dialog";
-import api from "@/axiosInterceptor";
-import { Laboratory, User } from "@/types/types";
+import { User } from "@/types/types";
 
 interface AddUserDialogProps {
 	onAddUser: (user: Partial<User> & { labIds: string[] }) => void
@@ -19,12 +17,6 @@ interface AddUserDialogProps {
 }
 
 const AddUserDialog = ({ onAddUser, isOpen, setIsOpen }: AddUserDialogProps) => {
-	const [labs, setLabs] = useState<Laboratory[]>([]);
-
-	useEffect(() => {
-		api("/labs")
-			.then(({ data }) => setLabs(data));
-	}, []);
 
 	const { Field, Subscribe, state, handleSubmit, reset } = useForm({
 		defaultValues: {
@@ -35,6 +27,10 @@ const AddUserDialog = ({ onAddUser, isOpen, setIsOpen }: AddUserDialogProps) => 
 			labIds: [] as string[]
 		},
 		onSubmit: ({ value: data }) => {
+			if (!data.role){
+				toast.error('Role not assigned to user')
+				return
+			}
 			data.email += "@hyderabad.bits-pilani.ac.in"
 			data.permissions = data.role === 'Admin' ? 1 : 0
 			onAddUser(data)
@@ -132,38 +128,6 @@ const AddUserDialog = ({ onAddUser, isOpen, setIsOpen }: AddUserDialogProps) => 
 							</Select>{
 								state.value === "Admin" ? <div className="flex justify-center items-center space-x-2 text-sm text-destructive"><ShieldAlert /><span>You are giving admin priveleges to this user.</span></div> : <></>
 							}</div></>
-					)} />
-					<Subscribe selector={(state) => [state.values.role]} children={([role]) => (
-						role === 'Technician' ? <Field name="labIds" children={({ state, setValue }) => (<>
-							<Label htmlFor="permissions">Laboratories</Label>
-							<DropdownMenu>
-								<DropdownMenuTrigger asChild>
-									<Button variant="outline" className="ml-auto">
-										Select Labs <ChevronDown />
-									</Button>
-								</DropdownMenuTrigger>
-								<DropdownMenuContent id="laboratories-dropdown" align="end">
-									<div className="max-w-28overflow-y-auto">
-										{labs
-											.map((lab) => {
-												return (
-													<DropdownMenuCheckboxItem
-														key={lab.id}
-														className="capitalize"
-														//To stop the dropdown from closing on click
-														onSelect={(e) => e.preventDefault()}
-														checked={state.value.includes(lab.id)}
-														onCheckedChange={(checked) => checked ? setValue((prev) => [...prev, lab.id]) : setValue((prev) => prev.filter((labId) => labId !== lab.id))}
-													>
-														{lab.name}
-													</DropdownMenuCheckboxItem>
-												)
-											})}
-									</div>
-								</DropdownMenuContent>
-							</DropdownMenu>
-						</>
-						)} /> : <></>
 					)} />
 				</form>
 				<DialogFooter>

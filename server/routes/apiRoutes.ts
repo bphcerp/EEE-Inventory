@@ -10,6 +10,7 @@ import morgan from 'morgan';
 import labRoutes from './labRoutes';
 import inventoryRoutes from './inventoryRoutes'
 import { Router } from "websocket-express";
+import vendorRoutes from "./vendorRoutes";
 
 
 const router = new Router();
@@ -28,6 +29,8 @@ router.useHTTP('/labs', authMiddleware, labRoutes);
 
 // Inventory API routes
 router.use('/inventory',authMiddleware, inventoryRoutes);
+
+router.useHTTP('/vendors',authMiddleware, vendorRoutes);
 
 //404 for all non-existing routes
 router.use((_, res) => {

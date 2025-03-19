@@ -3,7 +3,7 @@
  * @description This file contains the entity definitions for the User, Laboratory, and InventoryItem entities used in the EEE-Inventory system.
  */
 
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinTable, ManyToMany, Generated, OneToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinTable, ManyToMany, Generated, OneToOne, JoinColumn, OneToMany } from 'typeorm';
 
 // User entity
 @Entity()
@@ -23,11 +23,6 @@ export class User {
 
     @Column({ type: "enum", enum: ["Admin", "Technician", "Faculty"]})
     role: "Admin" | "Technician" | "Faculty"; // 0 for read (non-Admin), 1 for read and write (Admin)
-
-    @ManyToMany(() => Laboratory, (laboratory) => laboratory.technicians, {
-        onDelete: 'CASCADE'
-    })
-    laboratories?: Laboratory[];
 }
 
 // Laboratory entity
@@ -39,9 +34,39 @@ export class Laboratory {
     @Column({ type: "text", unique: true })
     name: string;
 
-    @ManyToMany(() => User, (user) => user.laboratories)
-    @JoinTable()
-    technicians: User[];
+    @Column({ type: "char", length: 4 })
+    code: string;
+
+    @ManyToOne(() => User)
+    technicianInCharge: User
+
+    @ManyToOne(() => User)
+    facultyInCharge: User
+}
+
+//Vendor
+@Entity()
+export class Vendor {
+    @PrimaryGeneratedColumn("uuid")
+    id: string;
+
+    @Column({ type: "text" })
+    name: string;
+
+    @Column("text", { nullable: true })
+    address: string; // Vendor address
+
+    @Column("text")
+    pocName: string; // Vendor point of contact name
+
+    @Column("text")
+    phoneNumber: string; // Vendor point of contact phone number
+
+    @Column("text")
+    email: string; // Vendor point of contact email ID
+
+    @ManyToOne(() => InventoryItem)
+    inventoryItems: InventoryItem[]
 } 
 
 // AccessToken entity
@@ -89,7 +114,7 @@ export class InventoryItem {
     yearOfLease?: number; // Year of lease (if applicable)
 
     @Column("decimal", { precision: 15, scale: 2 })
-    itemAmountInPO: number; // Amount of the item in the purchase order
+    poAmount: number; // Amount of the item in the purchase order
 
     @Column("text", { nullable: true })
     poNumber: string; // Purchase order number
@@ -98,10 +123,10 @@ export class InventoryItem {
     poDate: Date; // Purchase order date
 
     @ManyToOne(() => User, { nullable: true })
-    labInchargeAtPurchase?: User; // Lab in-charge at the time of purchase
+    labInchargeAtPurchase?: string; // Lab in-charge at the time of purchase
 
     @ManyToOne(() => User, { nullable: true })
-    labTechnicianAtPurchase?: User; // Lab technician at the time of purchase
+    labTechnicianAtPurchase?: string; // Lab technician at the time of purchase
 
     @Column("text")
     equipmentID: string; // Equipment ID
@@ -112,20 +137,8 @@ export class InventoryItem {
     @Column("date", { nullable: true })
     dateOfInstallation?: Date; // Date of installation (if applicable)
 
-    @Column("text")
-    vendorName: string; // Vendor name
-
-    @Column("text")
-    vendorAddress: string; // Vendor address
-
-    @Column("text")
-    vendorPOCName: string; // Vendor point of contact name
-
-    @Column("text")
-    vendorPOCPhoneNumber: string; // Vendor point of contact phone number
-
-    @Column("text")
-    vendorPOCEmailID: string; // Vendor point of contact email ID
+    @OneToMany(() => Vendor, (vendor) => vendor.inventoryItems)
+    vendor: Vendor; // Vendor name
 
     @Column("date", { nullable: true })
     warrantyFrom?: Date; // Warranty start date (if applicable)

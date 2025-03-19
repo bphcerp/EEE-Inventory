@@ -7,7 +7,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
 import api from "@/axiosInterceptor";
 import { Link, useNavigate } from "react-router";
-import { InventoryItem, User } from "@/types/types";
+import { InventoryItem } from "@/types/types";
 
 export const Inventory = () => {
     const userPermissions = useUserPermissions();
@@ -27,12 +27,12 @@ export const Inventory = () => {
         { accessorKey: 'poNumber', header: 'PO Number', meta: { filterType: 'search' as TableFilterType } },
 
         { accessorFn: (row) => row.lab.name ?? "NA", header: 'Laboratory', meta: { filterType: 'multiselect' as TableFilterType } },
-        { accessorKey: 'labInchargeAtPurchase', header: 'Lab Incharge at Purchase', cell: ({ getValue }) => (getValue() as User)?.name ?? 'NA' },
-        { accessorKey: 'labTechnicianAtPurchase', header: 'Lab Technician at Purchase', cell: ({ getValue }) => (getValue() as User)?.name ?? 'NA' },
+        { accessorKey: 'labInchargeAtPurchase', header: 'Lab Incharge at Purchase' },
+        { accessorKey: 'labTechnicianAtPurchase', header: 'Lab Technician at Purchase' },
 
         // Unpinned columns
         { accessorFn: (row) => row.quantity.toString() , header: 'Quantity', meta: { filterType: 'number-range' as TableFilterType } },
-        { accessorKey: 'itemAmountInPO', header: 'Amount in PO', cell: ({ getValue }) => (Number(getValue())).toLocaleString('en-IN', { style: "currency", currency: "INR" }), meta: { filterType: 'number-range' as TableFilterType } },
+        { accessorKey: 'poAmount', header: 'PO Amount', cell: ({ getValue }) => (Number(getValue())).toLocaleString('en-IN', { style: "currency", currency: "INR" }), meta: { filterType: 'number-range' as TableFilterType } },
         { accessorKey: 'poDate', header: 'PO Date', meta: { filterType: 'date-range' as TableFilterType } },
         { accessorKey: 'vendorName', header: 'Vendor Name', meta: { filterType: 'dropdown' as TableFilterType } },
         { accessorKey: 'currentLocation', header: 'Current Location', meta: { filterType: 'dropdown' as TableFilterType } },

@@ -4,6 +4,11 @@
 
 @custom-variant dark (&:is(.dark *));
 
+label:has(+ *:required)::after {
+  content: ' *';
+  color: red;
+}
+
 :root {
   /* Header height */
   --header-height: calc(var(--spacing)* 16);
