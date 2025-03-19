@@ -37,7 +37,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table"
-import { CSSProperties, ReactNode, useEffect, useState } from "react"
+import { CSSProperties, ReactNode, useEffect, useRef, useState } from "react"
 import OverflowHandler from "./OverflowHandler"
 
 interface DataTableProps<T> {
@@ -71,7 +71,56 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
         useState<VisibilityState>({})
     const [rowSelection, setRowSelection] = useState({})
 
-    const [cellStyleMap, setCellStyleMap] = useState<{ [key: string]: CSSProperties }>({})
+    const tableContainerRef = useRef<HTMLDivElement>(null);
+    const fakeScrollbarRef = useRef<HTMLDivElement>(null);
+    const [tableWidth, setTableWidth] = useState(0);
+
+    // Improved scroll synchronization with debounce for performance
+    useEffect(() => {
+        const tableContainer = tableContainerRef.current;
+        const fakeScrollbar = fakeScrollbarRef.current;
+
+        if (!tableContainer || !fakeScrollbar) return;
+
+        // Update the fake scrollbar width when table dimensions change
+        const updateTableWidth = () => {
+            const tableElement = tableContainer.querySelector("table");
+            if (tableElement) {
+                const actualWidth = Math.max(tableElement.scrollWidth, tableContainer.scrollWidth);
+                setTableWidth(actualWidth);
+            }
+        };
+
+        // Initialize observer to watch for DOM changes that affect table size
+        const resizeObserver = new ResizeObserver(() => {
+            updateTableWidth();
+        });
+
+        resizeObserver.observe(tableContainer);
+
+        // Run once on mount
+        updateTableWidth();
+
+        // Handle real table scrolling
+        const handleTableScroll = () => {
+            fakeScrollbar.scrollLeft = tableContainer.scrollLeft;
+        };
+
+        // Handle fake scrollbar scrolling
+        const handleFakeScroll = () => {
+            tableContainer.scrollLeft = fakeScrollbar.scrollLeft;
+        };
+
+        // Add event listeners
+        tableContainer.addEventListener("scroll", handleTableScroll);
+        fakeScrollbar.addEventListener("scroll", handleFakeScroll);
+
+        return () => {
+            resizeObserver.disconnect();
+            tableContainer.removeEventListener("scroll", handleTableScroll);
+            fakeScrollbar.removeEventListener("scroll", handleFakeScroll);
+        };
+    }, []);
 
     const isWithinRange = (row: Row<T>, columnId: string, value: any) => {
         const date = new Date(row.getValue(columnId));
@@ -125,32 +174,6 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
             rowSelection,
         },
     })
-
-    useEffect(() => {
-        for (const column of table.getAllColumns()) {
-            console.log(getCommonPinningStyles(table.getColumn('itemCategory')!))
-            setCellStyleMap(prev => ({ ...prev, [column.id]: getCommonPinningStyles(column) }))
-        }
-
-    }, [table.getRowModel().rows])
-
-    const getCommonPinningStyles = (column: Column<T>): CSSProperties => {
-        const isPinned = column.getIsPinned()
-        const isLastLeftPinnedColumn =
-            isPinned === 'left' && column.getIsLastColumn('left')
-
-        const computedJSWidth = document.getElementById(column.id)?.offsetLeft ?? 0
-
-        return {
-            backgroundColor: "var(--background)",
-            ...(isPinned && isLastLeftPinnedColumn && {
-                boxShadow: '-2px 0 4px -4px var(--primary) inset'
-            }),
-            left: isPinned === 'left' ? `${computedJSWidth}px` : undefined,
-            position: isPinned ? 'sticky' : undefined,
-            zIndex: isPinned ? 10 : 0,
-        }
-    }
 
     const renderFilter = (column: Column<T>) => {
         const filterType = column.columnDef.meta?.filterType;
@@ -332,13 +355,12 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
                     </div>
                 </div>
             </div>
-            {data.length ? <div className="rounded-md border p-2">
-                <Table className='table-auto'>
+            {data.length ? <div className="relativerounded-md border p-2">
+                <Table tableContainerRef={tableContainerRef} className='table-auto'>
                     <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (
                             <TableRow key={headerGroup.id}>
-                                <div className="flex sticky left-0 bg-background">
-                                    <TableHead className="z-2 w-[20px]">
+                                    <TableHead className="z-2 w-[20px] sticky left-0 bg-background">
                                         <Checkbox
                                             checked={
                                                 table.getIsAllPageRowsSelected() ||
@@ -348,9 +370,9 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
                                             aria-label="Select all"
                                         />
                                     </TableHead>
-                                    {headerGroup.headers.filter((header) => header.column.getIsPinned()).map((header) => {
+                                    {headerGroup.headers.filter((header) => header.column.getIsPinned()).map((header,i) => {
                                         return (
-                                            <TableHead className="w-full h-full" id={header.column.id} colSpan={header.colSpan} key={header.id}>
+                                            <TableHead style={{ left:document.getElementById(header.column.id)?.offsetLeft }} className={`sticky bg-background h-full`} id={header.column.id} colSpan={header.colSpan} key={header.id}>
                                                 <div className={`flex flex-col w-max gap-y-2`}>
                                                     {header.isPlaceholder
                                                         ? null
@@ -363,10 +385,9 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
                                             </TableHead>
                                         )
                                     })}
-                                </div>
                                 {headerGroup.headers.filter((header) => !header.column.getIsPinned()).map((header) => {
                                     return (
-                                        <TableHead id={header.column.id} colSpan={header.colSpan} style={{ ...cellStyleMap[header.column.id] }} key={header.id}>
+                                        <TableHead id={header.column.id} colSpan={header.colSpan} key={header.id}>
                                             <div className={`flex flex-col w-max text-center items-start gap-y-2 py-2`}>
                                                 {header.isPlaceholder
                                                     ? null
@@ -390,18 +411,17 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
 
                                     data-state={row.getIsSelected() && "selected"}
                                 >
-                                    <div className="flex sticky left-0 bg-background">
-                                        <TableCell className="z-2 w-[20px]">
+                                        <TableCell className="z-2 sticky left-0 bg-background w-[20px]">
                                             <Checkbox
                                                 checked={row.getIsSelected()}
                                                 onCheckedChange={(value) => row.toggleSelected(!!value)}
                                                 aria-label="Select row"
                                             />
                                         </TableCell>
-                                        <div className={`grid w-[${40 - 10 * (table.getAllColumns().filter(column => (column.getIsPinned())).length - table.getAllColumns().filter(column => (column.getIsVisible() && column.getIsPinned())).length)}rem] grid-cols-${table.getAllColumns().filter(column => (column.getIsVisible() && column.getIsPinned())).length}`}>
                                             {row.getVisibleCells().filter((cell) => cell.column.getIsPinned()).map((cell) => (
                                                 <TableCell
-                                                    className={`${(cell.column.columnDef.meta && ['date-range', 'number-range'].includes(cell.column.columnDef.meta.filterType ?? '')) ? 'text-center' : ''}`}
+                                                    className={`sticky left-0 bg-background ${(cell.column.columnDef.meta && ['date-range', 'number-range'].includes(cell.column.columnDef.meta.filterType ?? '')) ? 'text-center' : ''}`}
+                                                    style={{ left:document.getElementById(cell.column.id)?.offsetLeft }}
                                                     key={cell.id}
                                                     title={cell.getValue() && (cell.getValue() as any).toString().length > 20 ? (cell.getValue() as any).toString() : undefined}
                                                 >
@@ -415,12 +435,9 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
                                                     }
                                                 </TableCell>
                                             ))}
-                                        </div>
-                                    </div>
                                     {row.getVisibleCells().filter((cell) => !cell.column.getIsPinned()).map((cell) => (
                                         <TableCell
                                             className={` ${(cell.column.columnDef.meta && ['date-range', 'number-range'].includes(cell.column.columnDef.meta.filterType ?? '')) ? 'text-center' : ''}`}
-                                            style={{ ...cellStyleMap[cell.column.id] }}
                                             key={cell.id}
                                             title={cell.getValue() && (cell.getValue() as any).toString().length > 20 ? (cell.getValue() as any).toString() : undefined}
                                         >
@@ -430,7 +447,7 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
                                                         cell.column.columnDef.cell,
                                                         cell.getContext()
                                                     ) :
-                                                    <OverflowHandler text={cell.getValue() as string} /> : <span>Not Provided</span>
+                                                    <OverflowHandler text={cell.getValue() as string} /> : <div className="w-full text-start p-0.5">Not Provided</div>
                                             }
                                         </TableCell>
                                     ))}
@@ -443,6 +460,12 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
                         </div>
                     </div>}
                 </Table>
+                <div
+                    ref={fakeScrollbarRef}
+                    className="h-4 sticky bottom-1 left-0 overflow-x-auto bg-gray-100 rounded mt-1"
+                >
+                    <div style={{ width: `${tableWidth}px`, height: '1px' }}></div>
+                </div>
             </div> : <div>
                 <div className="flex flex-col items-center justify-center border-1 border-primary rounded-md h-40">
                     <p className="text-lg text-gray-500">No data</p>

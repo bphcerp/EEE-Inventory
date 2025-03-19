@@ -1,12 +1,14 @@
 import * as React from "react"
 
 import { cn } from "@/lib/utils"
+import { Ref } from "react"
 
-function Table({ className, ...props }: React.ComponentProps<"table">) {
+function Table({ className,tableContainerRef, ...props }: React.ComponentProps<"table"> & { tableContainerRef?: Ref<HTMLDivElement> }) {
   return (
     <div
       data-slot="table-container"
-      className="relative w-full overflow-x-auto"
+      className="relative w-full overflow-x-auto hide-scrollbar"
+      ref={tableContainerRef}
     >
       <table
         data-slot="table"
