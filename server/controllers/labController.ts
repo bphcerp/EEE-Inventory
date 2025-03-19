@@ -22,7 +22,7 @@ export const getAllLabs = async (_req: Request, res: Response) => {
 // Add Laboratory Controller
 export const addLab = async (req: Request, res: Response) => {
     try {
-        const { name, code, technicianInChargeId, facultyInChargeId } = req.body;
+        const { name, code,location, technicianInChargeId, facultyInChargeId } = req.body;
 
         // Validate input
         if (!name || !code) {
@@ -41,6 +41,7 @@ export const addLab = async (req: Request, res: Response) => {
         const newLab = labRepository.create({
             name,
             code,
+            location
         });
         newLab.facultyInCharge = { id: facultyInChargeId } as any
         newLab.technicianInCharge = { id : technicianInChargeId } as any

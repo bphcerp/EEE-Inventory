@@ -311,21 +311,29 @@ export const addInventoryItem = async (req: Request, res: Response) => {
             warrantyFrom: req.body.warrantyFrom ? new Date(req.body.warrantyFrom) : null,
             warrantyTo: req.body.warrantyTo ? new Date(req.body.warrantyTo) : null,
             amcFrom: req.body.amcFrom ? new Date(req.body.amcFrom) : null,
-            amcTo: req.body.amcTo ? new Date(req.body.amcTo) : null,
-            softcopyOfPO: (req.files as any)?.softcopyOfPO?.[0]?.path || null,
-            softcopyOfInvoice: (req.files as any)?.softcopyOfInvoice?.[0]?.path || null,
-            softcopyOfNFA: (req.files as any)?.softcopyOfNFA?.[0]?.path || null,
-            softcopyOfAMC: (req.files as any)?.softcopyOfAMC?.[0]?.path || null,
-            equipmentPhoto: (req.files as any)?.equipmentPhoto?.[0]?.path || null,
+            amcTo: req.body.amcTo ? new Date(req.body.amcTo) : null
         };
 
         const newItem = itemRepository.create(formData as Object);
         newItem.lab = req.body.labId ? { id: req.body.labId } as any : undefined
+        newItem.vendor = req.body.vendorId ? { id: req.body.vendorId } as any : undefined
         const result = await itemRepository.save(newItem);
         res.status(201).json(result);
     } catch (error) {
         res.status(500).json({ message: 'Error adding inventory item', error });
         console.error(error)
+    }
+};
+
+// Get serial number for a to be added item (no of items for that lab + 1)
+export const getLastItemNumber = async (req: Request, res: Response) => {
+
+    try {
+        const lastItemNumber = (await itemRepository.countBy({lab : { id : req.query.labId as string }})) + 1
+        res.status(200).json({ lastItemNumber });
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching inventory items', error });
+        console.error(error);
     }
 };
 
@@ -335,7 +343,7 @@ export const getInventory = async (req: Request, res: Response) => {
 
     try {
         const items = await itemRepository.find({
-            relations: ['lab']
+            relations: ['lab', 'vendor', 'itemCategory']
         });
 
         res.status(200).json(items);

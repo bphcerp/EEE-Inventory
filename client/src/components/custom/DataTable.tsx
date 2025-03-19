@@ -462,7 +462,7 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
                 </Table>
                 <div
                     ref={fakeScrollbarRef}
-                    className="h-4 sticky bottom-1 left-0 overflow-x-auto bg-gray-100 rounded mt-1"
+                    className="h-4 sticky bottom-1 left-0 overflow-x-auto bg-zinc-100 dark:bg-zinc-800 rounded mt-1"
                 >
                     <div style={{ width: `${tableWidth}px`, height: '1px' }}></div>
                 </div>

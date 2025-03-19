@@ -18,7 +18,10 @@ export const NavBar = () => {
 
       <MenubarMenu>
         <MenubarTrigger>
-          <Link to="/inventory" className="flex items-center gap-2">
+          {/* The pinned behaviour on inventory behaves weirdly with react-router reloading 
+            With reloadDocument = true, it reloads like a normal <a> (anchor) tag
+          */}
+          <Link to="/inventory" reloadDocument className="flex items-center gap-2">
             <Warehouse className="w-5 h-5" /> Inventory
           </Link>
         </MenubarTrigger>

@@ -9,17 +9,15 @@ import api from "@/axiosInterceptor";
 import { useForm } from "@tanstack/react-form";
 import FuzzySearch from "fuzzy-search";
 import { Link, useLocation } from "react-router";
-import { Laboratory, User } from "@/types/types";
+import { Category, Laboratory, Vendor } from "@/types/types";
+import { AlertTriangle } from "lucide-react";
 
 const AddInventoryItem = () => {
     const [labs, setLabs] = useState<Laboratory[]>([]);
     const [filteredLabs, setFilteredLabs] = useState<Laboratory[]>([]);
-
-    const [faculties, setFaculties] = useState<User[]>([])
-    const [filteredFaculties, setFilteredFaculties] = useState<User[]>([]);
-
-    const [technicians, setTechnicians] = useState<User[]>([])
-    const [filteredTechnicians, setFilteredTechnicians] = useState<User[]>([]);
+    const [categories, setCategories] = useState<Category[]>([]);
+    const [vendors, setVendors] = useState<Vendor[]>([])
+    const [lastItemNumber, setItemNumber] = useState(0)
 
     const location = useLocation()
 
@@ -29,65 +27,56 @@ const AddInventoryItem = () => {
             setFilteredLabs(data)
         });
 
-        api("/users?role=Technician").then(({ data }) => {
-            setTechnicians(data)
-            setFilteredTechnicians(data)
+        api("/categories?type=Inventory").then(({ data }) => {
+            setCategories(data);
         });
 
-        api("/users?role=Faculty").then(({ data }) => {
-            setFaculties(data)
-            setFilteredFaculties(data)
+        api("/vendors").then(({ data }) => {
+            setVendors(data);
+        });
+
+        api("/inventory/lastItemNumber").then(({ data }) => {
+            setItemNumber(data.lastItemNumber);
         });
 
     }, []);
 
-    const { Field, Subscribe, handleSubmit } = useForm({
+    const { Field, Subscribe, handleSubmit, setFieldValue } = useForm({
         defaultValues: location.state ?? {
             labId: "",
             itemCategory: "",
             itemName: "",
             specifications: "",
-            quantity: 0,
+            quantity: 1,
             noOfLicenses: null as number | null,
             natureOfLicense: "",
             yearOfLease: null as number | null,
             poAmount: 0,
             poNumber: "",
             poDate: null as Date | null,
-            labInchargeAtPurchaseId: "",
-            labTechnicianAtPurchaseId: "",
+            labInchargeAtPurchase: "",
+            labTechnicianAtPurchase: "",
             equipmentID: "",
             fundingSource: "",
             dateOfInstallation: null as Date | null,
-            vendorName: "",
-            vendorAddress: "",
-            vendorPOCName: "",
-            vendorPOCPhoneNumber: "",
-            vendorPOCEmailID: "",
+            vendorId: "",
             warrantyFrom: null as Date | null,
             warrantyTo: null as Date | null,
             amcFrom: null as Date | null,
             amcTo: null as Date | null,
             currentLocation: "",
-            status: "Working" as "Working" | "Not Working" | null,
+            status: "Working" as "Working" | "Not Working" | "Under Repair" | null,
             remarks: "",
-            softcopyOfPO: null as File | null,
-            softcopyOfInvoice: null as File | null,
-            softcopyOfNFA: null as File | null,
-            softcopyOfAMC: null as File | null,
-            equipmentPhoto: null as File | null,
+            softcopyOfPO: null as string | null,
+            softcopyOfInvoice: null as string | null,
+            softcopyOfNFA: null as string | null,
+            softcopyOfAMC: null as string | null,
+            equipmentPhoto: null as string | null,
         },
         onSubmit: async ({ value: data }) => {
             try {
-                const formData = new FormData();
-                Object.keys(data).forEach(key => {
-                    if ((data as any)[key] !== null) {
-                        formData.append(key, (data as any)[key]);
-                    }
-                });
-
                 toast.info("Submitting...")
-                const response = await api.post("/inventory", formData);
+                const response = await api.post("/inventory", data);
 
                 if (response.status === 201) {
                     toast.success("Item added successfully!");
@@ -106,7 +95,7 @@ const AddInventoryItem = () => {
         <div className="relative flex flex-col p-5">
 
             <span className="flex justify-center items-center mt-2 mb-10 w-full text-3xl text-primary text-center">Add an item to the inventory</span>
-            
+
             <Link to='/bulk-add'><Button className="absolute m-5 top-2 right-0">Add with Excel</Button></Link>
 
             {/* Left Side - Form Fields */}
@@ -114,75 +103,7 @@ const AddInventoryItem = () => {
                 e.preventDefault()
                 handleSubmit()
             }}>
-                <span className="text-2xl text-zinc-600">Item Details</span>
-                <div className="grid grid-cols-3 gap-4">
-                    <Field name="equipmentID">
-                        {(field) => (
-                            <div className="flex flex-col space-y-2">
-                                <Label>Equipment ID</Label>
-                                <Input value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} required />
-                            </div>
-                        )}
-                    </Field>
-                    <Field name="itemCategory">
-                        {(field) => (
-                            <div className="flex flex-col space-y-2">
-                                <Label>Item Category</Label>
-                                <Input value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} required />
-                            </div>
-                        )}
-                    </Field>
-                    <Field name="itemName">
-                        {(field) => (
-                            <div className="flex flex-col space-y-2">
-                                <Label>Item Name</Label>
-                                <Input value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} required />
-                            </div>
-                        )}
-                    </Field>
-                    <Field name="quantity">
-                        {(field) => (
-                            <div className="flex flex-col space-y-2">
-                                <Label>Quantity</Label>
-                                <Input type="number" min={0} value={field.state.value} onChange={(e) => field.handleChange(parseInt(e.target.value))} required />
-                            </div>
-                        )}
-                    </Field>
-                    <Field name="currentLocation">
-                        {(field) => (
-                            <div className="flex flex-col space-y-2">
-                                <Label>Current Location</Label>
-                                <Input placeholder="Ex: J-106, W-101" title="Please enter a valid room no (Ex. J-106, W-101)" pattern="^[A-Z]-\d{3}$" value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} required />
-                            </div>
-                        )}
-                    </Field>
-                    <Field name="status">
-                        {(field) => (
-                            <div className="flex flex-col space-y-2">
-                                <Label>Status</Label>
-                                <Select value={field.state.value ?? "NA"} onValueChange={(value) => field.handleChange((value === "NA" ? null : value) as 'Working' | 'Not Working' | null)}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select Status" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="Working"><span className="text-green-600 dark:text-green-500">Working</span></SelectItem>
-                                        <SelectItem value="Not Working"><span className="text-red-600 dark:text-red-500">Not Working</span></SelectItem>
-                                        <SelectItem value="NA">Not Applicable</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        )}
-                    </Field>
-                    <Field name="specifications">
-                        {(field) => (
-                            <div className="col-span-2 flex flex-col space-y-2">
-                                <Label>Specifications</Label>
-                                <Textarea value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} required />
-                            </div>
-                        )}
-                    </Field>
-                </div>
-                <span className="text-2xl text-zinc-600">Lab Details</span>
+                <span className="text-2xl text-zinc-600 dark:text-zinc-300">Lab Details</span>
                 <div className="grid grid-cols-3 gap-4">
                     <Subscribe selector={(state) => [state.values]} children={([values]) => (
                         <Field name="labId">
@@ -199,7 +120,7 @@ const AddInventoryItem = () => {
                                                     const searcher = new FuzzySearch(labs, ['name'], { caseSensitive: false });
                                                     setFilteredLabs(searcher.search(e.target.value));
                                                 }} />
-                                                 <Link to="/settings?view=Users&action=addUser" state={values}><Button>Add</Button></Link> </div>
+                                                <Link to="/settings?view=Labs&action=addLab" state={values}><Button>Add</Button></Link> </div>
                                             {filteredLabs.map((lab) => (
                                                 <SelectItem key={lab.id} value={lab.id}>
                                                     {lab.name}
@@ -211,67 +132,135 @@ const AddInventoryItem = () => {
                             )}
                         </Field>
                     )} />
-                    <Subscribe selector={(state) => [state.values]} children={([values]) => (
-                        <Field name="labInchargeAtPurchaseId">
-                            {(field) => (
-                                <div className="flex flex-col space-y-2">
-                                    <Label>Lab In-charge at Purchase</Label>
-                                    <Select value={field.state.value} onValueChange={(value) => {
-                                        field.handleChange(value)
-                                    }}>
-                                        <SelectTrigger className="w-52">
-                                            <SelectValue placeholder="Select Lab In-charge" />
-                                        </SelectTrigger>
-                                        <SelectContent onPointerDownOutside={() => setFilteredFaculties(faculties)}>
-                                            <div className="grid grid-cols-4 gap-x-2" onKeyDown={(e) => e.stopPropagation()}>
-                                                <Input name="facultySearch" className="col-span-3" placeholder="Search Faculties..." onChange={(e) => {
-                                                    const searcher = new FuzzySearch(faculties, [''], { caseSensitive: false });
-                                                    setFaculties(searcher.search(e.target.value));
-                                                }} />
-                                                <Link to="/settings?view=Users&action=addUser" state={values}><Button>Add</Button></Link>
-                                            </div>
-                                            {filteredFaculties.map((incharge, i) => (
-                                                <SelectItem key={i} value={incharge.id}>
-                                                    {incharge.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            )}
-                        </Field>
-                    )} />
-                    <Subscribe selector={(state) => [state.values]} children={([values]) => (
-                        <Field name="labTechnicianAtPurchaseId">
-                            {(field) => (
-                                <div className="flex flex-col space-y-2">
-                                    <Label>Lab Technician at Purchase</Label>
-                                    <Select value={field.state.value} onValueChange={(value) => field.handleChange(value)}>
-                                        <SelectTrigger className="w-52">
-                                            <SelectValue placeholder="Select Lab Technician" />
-                                        </SelectTrigger>
-                                        <SelectContent onPointerDownOutside={() => setFilteredTechnicians(technicians)}>
-                                            {!technicians.length ? <SelectItem className="col-span-3" value="NA" disabled>No Technicians Added</SelectItem> : <></>}
-                                            <div className="grid grid-cols-4">
-                                                <Input onKeyDown={(e) => e.stopPropagation()} className="col-span-3" placeholder="Search Technicians..." onChange={(e) => {
-                                                    const searcher = new FuzzySearch(technicians, ['name'], { caseSensitive: false });
-                                                    setFilteredTechnicians(searcher.search(e.target.value));
-                                                }} />
-                                                <Link to="/settings?view=Users&action=addUser" state={values}><Button>Add</Button></Link>
-                                            </div>
-                                            {filteredTechnicians.map((technician) => (
-                                                <SelectItem key={technician.id} value={technician.id}>
-                                                    {technician.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            )}
-                        </Field>
-                    )} />
+                    <Subscribe selector={(state) => [state.values.labId]} children={([labId]) => {
+
+                        const lab = labs.find(lab => lab.id === labId)
+                        setFieldValue('labInchargeAtPurchase', lab?.facultyInCharge?.name)
+                        setFieldValue('labTechnicianAtPurchase', lab?.technicianInCharge?.name)
+                        return (<>
+                            <Field name="labInchargeAtPurchase">
+                                {({ state }) => (
+                                    <div className="flex flex-col space-y-2">
+                                        <div className="flex space-x-2">
+                                            <Label>Lab In-charge at Purchase<span className="text-xs text-zinc-600">Auto filled</span></Label>
+                                            {(lab && !lab.facultyInCharge) && <AlertTriangle className="text-yellow-400" />}
+                                        </div>
+                                        <Input className="bg-zinc-200 dark:bg-zinc-800" disabled value={state.value ?? "None Specified"} />
+                                    </div>
+                                )}
+                            </Field>
+                            <Field name="labTechnicianAtPurchase">
+                                {({ state }) => (
+                                    <div className="flex flex-col space-y-2">
+                                        <div className="flex space-x-2">
+                                            <Label>Lab Technician at Purchase<span className="text-xs text-zinc-600">Auto filled</span></Label>
+                                            {(lab && !lab.technicianInCharge) && <AlertTriangle className="text-yellow-400" />}
+                                        </div>
+                                        <Input className="bg-zinc-200 dark:bg-zinc-800" disabled value={state.value ?? "None Specified"} />
+                                    </div>
+                                )}
+                            </Field>
+                        </>)
+                    }} />
                 </div>
-                <span className="text-2xl text-zinc-600">License & Registration</span>
+                <span className="text-2xl text-zinc-600 dark:text-zinc-300">Item Details</span>
+                <div className="grid grid-cols-3 gap-4">
+                    <Subscribe selector={(state) => [state.values.labId, state.values.itemCategory, state.values.quantity]} children={([labId, categoryId, quantity]) => {
+
+                        const lab = labs.find(lab => lab.id === labId)
+                        const categoryCode = categories.find(cateogory => cateogory.id === categoryId)?.code
+
+                        const equipmentID = (lab && categoryCode) ? `BITS/EEE/${lab.code}/${categoryCode}/${quantity > 1 ? `${lastItemNumber}-${quantity}` : lastItemNumber}` : ''
+                        setFieldValue('equipmentID', equipmentID)
+                        return (<Field name="equipmentID">
+                            {({ state }) => (
+                                <div className="flex flex-col space-y-2">
+                                    <Label>Equipment ID<span className="text-xs text-zinc-600">Auto generated</span></Label>
+                                    <Input className="bg-zinc-200 dark:bg-zinc-800" disabled value={state.value ?? "Not Provided"} required />
+                                </div>
+                            )}
+                        </Field>)
+                    }} />
+                    <Field name="itemCategory">
+                        {(field) => (
+                            <div className="flex flex-col space-y-2">
+                                <Label>Item Category</Label>
+                                <Select value={field.state.value} onValueChange={(value) => field.handleChange(value)} required>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select Category" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {categories.map((category) => (
+                                            <SelectItem key={category.id} value={category.id}>
+                                                {category.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
+                    </Field>
+                    <Field name="itemName">
+                        {(field) => (
+                            <div className="flex flex-col space-y-2">
+                                <Label>Item Name</Label>
+                                <Input value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} required />
+                            </div>
+                        )}
+                    </Field>
+                    <Field name="quantity">
+                        {(field) => (
+                            <div className="flex flex-col space-y-2">
+                                <Label>Quantity</Label>
+                                <Input type="number" min={1} value={field.state.value} onChange={(e) => field.handleChange(parseInt(e.target.value))} required />
+                            </div>
+                        )}
+                    </Field>
+                    <Subscribe selector={(state) => [state.values.labId]} children={([labId]) => {
+
+                        const lab = labs.find(lab => lab.id == labId)
+                        setFieldValue("currentLocation", lab?.location ?? '')
+
+                        return <Field name="currentLocation">
+                            {(field) => (
+                                <div className="flex flex-col space-y-2">
+                                    <Label>
+                                        <span>Current Location</span>
+                                        {(!field.state.value) && <AlertTriangle size={20} className="text-yellow-400" />}
+                                    </Label>
+                                    <Input placeholder="Ex: J-106, W-101" title="Please enter a valid room no (Ex. J-106, W-101)" pattern="^[A-Z]-\d{3}$" value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} required />
+                                </div>
+                            )}
+                        </Field>
+                    }} />
+                    <Field name="status">
+                        {(field) => (
+                            <div className="flex flex-col space-y-2">
+                                <Label>Status</Label>
+                                <Select value={field.state.value ?? "NA"} onValueChange={(value) => field.handleChange((value === "NA" ? null : value) as 'Working' | 'Not Working' | null)}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select Status" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="Working"><span className="text-green-600 dark:text-green-500">Working</span></SelectItem>
+                                        <SelectItem value="Not Working"><span className="text-red-600 dark:text-red-500">Not Working</span></SelectItem>
+                                        <SelectItem value="Under Repair"><span className="text-yellow-600 dark:text-yellow-500">Under Repair</span></SelectItem>
+                                        <SelectItem value="NA">Not Applicable</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
+                    </Field>
+                    <Field name="specifications">
+                        {(field) => (
+                            <div className="col-span-2 flex flex-col space-y-2">
+                                <Label>Specifications</Label>
+                                <Textarea value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} required />
+                            </div>
+                        )}
+                    </Field>
+                </div>
+                <span className="text-2xl text-zinc-600 dark:text-zinc-300">License & Registration</span>
                 <div className="grid grid-cols-3 gap-4">
                     <Field name="noOfLicenses">
                         {(field) => (
@@ -309,7 +298,7 @@ const AddInventoryItem = () => {
                         {(field) => (
                             <div className="flex flex-col space-y-2">
                                 <Label>PO Number</Label>
-                                <Input value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} required />
+                                <Input value={field.state.value} onChange={(e) => field.handleChange(e.target.value.toUpperCase())} required />
                             </div>
                         )}
                     </Field>
@@ -339,50 +328,50 @@ const AddInventoryItem = () => {
                     </Field>
                 </div>
 
-                <span className="text-2xl text-zinc-600">Vendor Information</span>
+                <span className="text-2xl text-zinc-600 dark:text-zinc-300">Vendor Information</span>
                 <div className="grid grid-cols-3 gap-4">
-                    <Field name="vendorName">
+                    <Field name="vendorId">
                         {(field) => (
                             <div className="flex flex-col space-y-2">
-                                <Label>Vendor Name</Label>
-                                <Input value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} required />
+                                <Label>Vendor</Label>
+                                <Select value={field.state.value} onValueChange={(value) => field.handleChange(value)} required>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select Vendor" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {vendors.map((vendor) => (
+                                            <SelectItem key={vendor.id} value={vendor.id}>
+                                                {vendor.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
                         )}
                     </Field>
-                    <Field name="vendorAddress">
-                        {(field) => (
+                    <Subscribe selector={(state) => ([state.values.vendorId])} children={([vendorId]) => {
+                        const vendor = vendors.find(vendor => vendor.id === vendorId)
+                        return <>
                             <div className="flex flex-col space-y-2">
-                                <Label>Vendor Address</Label>
-                                <Input value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} required />
+                                <Label>Vendor Address<span className="text-xs text-zinc-600">Auto filled</span></Label>
+                                <Input disabled className="bg-zinc-200 dark:bg-zinc-800" value={vendor?.address ?? 'Not Provided'} />
                             </div>
-                        )}
-                    </Field>
-                    <Field name="vendorPOCName">
-                        {(field) => (
                             <div className="flex flex-col space-y-2">
-                                <Label>Vendor POC Name</Label>
-                                <Input value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} required />
+                                <Label>Vendor POC Name<span className="text-xs text-zinc-600">Auto filled</span></Label>
+                                <Input disabled className="bg-zinc-200 dark:bg-zinc-800" value={vendor?.pocName ?? "Not Provided"} required />
                             </div>
-                        )}
-                    </Field>
-                    <Field name="vendorPOCPhoneNumber">
-                        {(field) => (
                             <div className="flex flex-col space-y-2">
-                                <Label>Vendor POC Phone Number</Label>
-                                <Input value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} required />
+                                <Label>Vendor POC Phone Number<span className="text-xs text-zinc-600">Auto filled</span></Label>
+                                <Input disabled className="bg-zinc-200 dark:bg-zinc-800" value={vendor?.phoneNumber ?? 'Not Provided'} required />
                             </div>
-                        )}
-                    </Field>
-                    <Field name="vendorPOCEmailID">
-                        {(field) => (
                             <div className="flex flex-col space-y-2">
-                                <Label>Vendor POC Email ID</Label>
-                                <Input type="email" value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} required />
+                                <Label>Vendor POC Email ID<span className="text-xs text-zinc-600">Auto filled</span></Label>
+                                <Input disabled className="bg-zinc-200 dark:bg-zinc-800" type="email" value={vendor?.email ?? 'Not Provided'} required />
                             </div>
-                        )}
-                    </Field>
+                        </>
+                    }} />
                 </div>
-                <span className="text-2xl text-zinc-600">Warranty & AMC</span>
+                <span className="text-2xl text-zinc-600 dark:text-zinc-300">Warranty & AMC</span>
                 <div className="grid grid-cols-3 gap-4">
                     <Field name="warrantyFrom">
                         {(field) => (
@@ -421,12 +410,12 @@ const AddInventoryItem = () => {
                         </Field>
                     )} />
                 </div>
-                <span className="text-2xl text-zinc-600">Documents</span>
+                <span className="text-2xl text-zinc-600 dark:text-zinc-300">Documents</span>
                 <div className="grid grid-cols-3 gap-4"><Field name="softcopyOfPO">
                     {(field) => (
                         <div className="flex flex-col space-y-2">
                             <Label>Soft Copy of PO</Label>
-                            <Input type="file" onChange={(e) => field.handleChange(e.target.files?.[0] || null)} />
+                            <Input placeholder="Paste link here" value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} />
                         </div>
                     )}
                 </Field>
@@ -434,7 +423,7 @@ const AddInventoryItem = () => {
                         {(field) => (
                             <div className="flex flex-col space-y-2">
                                 <Label>Soft Copy of Invoice</Label>
-                                <Input type="file" onChange={(e) => field.handleChange(e.target.files?.[0] || null)} />
+                                <Input placeholder="Paste link here" value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} />
                             </div>
                         )}
                     </Field>
@@ -442,7 +431,7 @@ const AddInventoryItem = () => {
                         {(field) => (
                             <div className="flex flex-col space-y-2">
                                 <Label>Soft Copy of NFA</Label>
-                                <Input type="file" onChange={(e) => field.handleChange(e.target.files?.[0] || null)} />
+                                <Input placeholder="Paste link here" value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} />
                             </div>
                         )}
                     </Field>
@@ -450,7 +439,7 @@ const AddInventoryItem = () => {
                         {(field) => (
                             <div className="flex flex-col space-y-2">
                                 <Label>Soft Copy of AMC</Label>
-                                <Input type="file" onChange={(e) => field.handleChange(e.target.files?.[0] || null)} />
+                                <Input placeholder="Paste link here" value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} />
                             </div>
                         )}
                     </Field>
@@ -458,7 +447,7 @@ const AddInventoryItem = () => {
                         {(field) => (
                             <div className="flex flex-col space-y-2">
                                 <Label>Equipment Photo</Label>
-                                <Input type="file" onChange={(e) => field.handleChange(e.target.files?.[0] || null)} />
+                                <Input placeholder="Paste link here" value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} />
                             </div>
                         )}
                     </Field></div>

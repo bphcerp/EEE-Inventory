@@ -34,6 +34,9 @@ export class Laboratory {
     @Column({ type: "text", unique: true })
     name: string;
 
+    @Column({ type: "text", nullable: true })
+    location?: string;
+
     @Column({ type: "char", length: 4 })
     code: string;
 
@@ -42,6 +45,22 @@ export class Laboratory {
 
     @ManyToOne(() => User)
     facultyInCharge: User
+}
+
+//Category Entity
+@Entity()
+export class Category {
+    @PrimaryGeneratedColumn("uuid")
+    id: string;
+
+    @Column({ type: "text", unique: true })
+    name: string;
+
+    @Column({ type: "char", length: 4 })
+    code: string;
+
+    @Column({ type: "enum", enum: ['Vendor', 'Inventory'] })
+    type: 'Vendor' | 'Inventory'
 }
 
 //Vendor
@@ -64,9 +83,6 @@ export class Vendor {
 
     @Column("text")
     email: string; // Vendor point of contact email ID
-
-    @ManyToOne(() => InventoryItem)
-    inventoryItems: InventoryItem[]
 } 
 
 // AccessToken entity
@@ -89,10 +105,10 @@ export class InventoryItem {
     @PrimaryGeneratedColumn("uuid")
     id: string;
 
-    @ManyToOne(() => Laboratory, { cascade: ['insert'] })
+    @ManyToOne(() => Laboratory)
     lab: Laboratory; // Foreign key to the laboratory
 
-    @Column("text")
+    @ManyToOne(() => Category)
     itemCategory: string; // Category of the item
 
     @Column("text")
@@ -122,10 +138,10 @@ export class InventoryItem {
     @Column("date", { nullable: true })
     poDate: Date; // Purchase order date
 
-    @ManyToOne(() => User, { nullable: true })
+    @Column("text", { nullable: true })
     labInchargeAtPurchase?: string; // Lab in-charge at the time of purchase
 
-    @ManyToOne(() => User, { nullable: true })
+    @Column("text", { nullable: true })
     labTechnicianAtPurchase?: string; // Lab technician at the time of purchase
 
     @Column("text")
@@ -137,7 +153,7 @@ export class InventoryItem {
     @Column("date", { nullable: true })
     dateOfInstallation?: Date; // Date of installation (if applicable)
 
-    @OneToMany(() => Vendor, (vendor) => vendor.inventoryItems)
+    @ManyToOne(() => Vendor)
     vendor: Vendor; // Vendor name
 
     @Column("date", { nullable: true })
@@ -167,8 +183,8 @@ export class InventoryItem {
     @Column("text", { nullable: true })
     softcopyOfAMC?: string; // Soft copy of the AMC (if applicable)
 
-    @Column({ type: "enum", enum: ["Working", "Not Working"], nullable: true })
-    status?: "Working" | "Not Working" | null; // Status of the item
+    @Column({ type: "enum", enum: ["Working", "Not Working", "Under Repair"], nullable: true })
+    status?: "Working" | "Not Working" | "Under Repair" | null; // Status of the item
 
     @Column("text", { nullable: true })
     equipmentPhoto?: string; // Photo of the equipment (if applicable)

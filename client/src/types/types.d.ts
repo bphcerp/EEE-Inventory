@@ -18,6 +18,7 @@ export interface Laboratory {
     id: string;
     name: string;
     code: string;
+    location?: string
     technicianInCharge?: User;
     facultyInCharge?: User;
 }
@@ -29,6 +30,13 @@ export interface Vendor {
     pocName: string;
     phoneNumber: string;
     email: string;
+}
+
+export interface Category {
+    id: string;
+    name: string;
+    code: string;
+    type: 'Vendor' | 'Inventory'
 }
 
 export interface InventoryItem {
@@ -59,7 +67,7 @@ export interface InventoryItem {
     softcopyOfInvoice?: string;
     softcopyOfNFA?: string;
     softcopyOfAMC?: string;
-    status?: "Working" | "Not Working" | null;
+    status?: "Working" | "Not Working" | "Under Repair" | null
     equipmentPhoto?: string;
     remarks?: string;
 }

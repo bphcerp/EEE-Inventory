@@ -1,4 +1,9 @@
-import { addBulkData, addInventoryItem, getAccessToken, getFile, getInventory } from '../controllers/inventoryController';
+/**
+ * @file inventoryRoutes.ts
+ * @description Routes for managing inventory-related operations.
+ */
+
+import { addBulkData, addInventoryItem, getAccessToken, getFile, getInventory, getLastItemNumber } from '../controllers/inventoryController';
 import multer from 'multer';
 import path from 'path';
 import { Router } from 'websocket-express';
@@ -29,6 +34,9 @@ router.post('/', upload, addInventoryItem);
 
 // Get items
 router.get('/', getInventory)
+
+// Get next serial number for a new item to be added
+router.get('/lastItemNumber', getLastItemNumber)
 
 // Get access token to use the websocket
 router.get('/token',checkAdminMiddlewareforGET, getAccessToken)

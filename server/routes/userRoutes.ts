@@ -1,3 +1,8 @@
+/**
+ * @file labRoutes.ts
+ * @description Routes for managing user-related operations.
+ */
+
 import { Router } from 'express';
 import { getUserPermissions, addUser, modifyUser, deleteUser, getUserLabs, getAllUsers } from '../controllers/userController';
 import checkAdminMiddlewareforGET from '../middleware/checkAdminMiddlewareforGet';

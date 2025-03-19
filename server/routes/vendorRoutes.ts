@@ -1,10 +1,11 @@
 import { Router } from 'express';
 import { getAllVendors, addVendor, editVendor, deleteVendor } from '../controllers/vendorController';
+import checkAdminMiddlewareforGET from '../middleware/checkAdminMiddlewareforGet';
 
 const router = Router();
 
 // GET /vendors Route to get all vendors
-router.get('/', getAllVendors);
+router.get('/',checkAdminMiddlewareforGET, getAllVendors);
 
 // POST /vendors Route to add a new vendor
 router.post('/', addVendor);

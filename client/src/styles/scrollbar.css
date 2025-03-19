@@ -7,6 +7,10 @@
   border-radius: 10px;
 }
 
+.dark ::-webkit-scrollbar-thumb {
+  background-color: #3f3f46;
+}
+
 ::-webkit-scrollbar-track {
   background: transparent;
   border-radius: 10px;
