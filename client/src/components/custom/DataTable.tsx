@@ -471,24 +471,24 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
                                     </TableCell>
                                     {row.getVisibleCells().filter((cell) => cell.column.getIsPinned()).map((cell) => (
                                         <TableCell
-                                            className={`sticky left-0 bg-background ${(cell.column.columnDef.meta && ['date-range', 'number-range'].includes(cell.column.columnDef.meta.filterType ?? '')) ? 'text-center' : ''}`}
+                                            className={`min-w-44 sticky left-0 bg-background ${(cell.column.columnDef.meta && ['date-range', 'number-range'].includes(cell.column.columnDef.meta.filterType ?? '')) ? 'text-center' : ''}`}
                                             style={{ left: cellLeftMap[cell.column.id] }}
                                             key={cell.id}
                                             title={cell.getValue() && (cell.getValue() as any).toString().length > 20 ? (cell.getValue() as any).toString() : undefined}
                                         >
                                             {
-                                                (cell.column.columnDef.cell && typeof cell.getValue() !== 'string') ?
-                                                    flexRender(
-                                                        cell.column.columnDef.cell,
-                                                        cell.getContext()
-                                                    ) :
-                                                    <OverflowHandler text={cell.getValue() as string} maxWidth={cell.column.getSize()} />
+                                                cell.getValue() ? (typeof (columns.find(column => column.header === cell.column.columnDef.header)?.cell) === 'function' || typeof cell.getValue() !== 'string') ?
+                                                flexRender(
+                                                    cell.column.columnDef.cell,
+                                                    cell.getContext()
+                                                ) :
+                                                <OverflowHandler text={cell.getValue() as string} /> : <div className="w-full text-start p-0.5">Not Provided</div>
                                             }
                                         </TableCell>
                                     ))}
                                     {row.getVisibleCells().filter((cell) => !cell.column.getIsPinned()).map((cell) => (
                                         <TableCell
-                                            className={` ${(cell.column.columnDef.meta && ['date-range', 'number-range'].includes(cell.column.columnDef.meta.filterType ?? '')) ? 'text-center' : ''}`}
+                                            className={`min-w-36  ${(cell.column.columnDef.meta && ['date-range', 'number-range'].includes(cell.column.columnDef.meta.filterType ?? '')) ? 'text-center' : ''}`}
                                             key={cell.id}
                                             title={cell.getValue() && (cell.getValue() as any).toString().length > 20 ? (cell.getValue() as any).toString() : undefined}
                                         >
@@ -498,7 +498,7 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
                                                         cell.column.columnDef.cell,
                                                         cell.getContext()
                                                     ) :
-                                                    <OverflowHandler text={cell.getValue() as string} maxWidth={cell.column.getSize()} /> : <div className="w-full text-start p-0.5">Not Provided</div>
+                                                    <OverflowHandler text={cell.getValue() as string} /> : <div className="w-full text-start p-0.5">Not Provided</div>
                                             }
                                         </TableCell>
                                     ))}

@@ -105,6 +105,9 @@ export class InventoryItem {
     @PrimaryGeneratedColumn("uuid")
     id: string;
 
+    @Column("int")
+    serialNumber: number; // Serial number ( Same for equipments entered at one time )
+
     @ManyToOne(() => Laboratory)
     lab: Laboratory; // Foreign key to the laboratory
 

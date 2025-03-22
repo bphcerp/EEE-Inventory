@@ -79,9 +79,9 @@ const AddInventoryItem = () => {
                 const response = await api.post("/inventory", data);
 
                 if (response.status === 201) {
-                    toast.success("Item added successfully!");
+                    toast.success(`Item${data.quantity > 1 ? 's' : ''} added successfully!`);
                 } else {
-                    toast.error("Failed to add item.");
+                    toast.error(`Failed to add item${data.quantity > 1 ? 's' : ''}.`);
                 }
             } catch (error) {
                 console.error("Error adding item:", error);
@@ -170,7 +170,7 @@ const AddInventoryItem = () => {
                         const lab = labs.find(lab => lab.id === labId)
                         const categoryCode = categories.find(cateogory => cateogory.id === categoryId)?.code
 
-                        const equipmentID = (lab && categoryCode) ? `BITS/EEE/${lab.code}/${categoryCode}/${quantity > 1 ? `${lastItemNumber}-${quantity}` : lastItemNumber}` : ''
+                        const equipmentID = (lab && categoryCode) ? `BITS/EEE/${lab.code}/${categoryCode}/${quantity > 1 ? `${lastItemNumber}-(1-${quantity})` : lastItemNumber}` : ''
                         setFieldValue('equipmentID', equipmentID)
                         return (<Field name="equipmentID">
                             {({ state }) => (

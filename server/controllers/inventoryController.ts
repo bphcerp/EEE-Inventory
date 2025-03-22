@@ -4,7 +4,7 @@
  */
 
 import { Request, Response } from 'express';
-import { itemRepository, labRepository, tokenRepository, userRepository } from '../repositories/repositories';
+import { categoryRepository, itemRepository, labRepository, tokenRepository, userRepository } from '../repositories/repositories';
 import { In } from 'typeorm';
 import fs from 'fs';
 import path from 'path';
@@ -314,10 +314,31 @@ export const addInventoryItem = async (req: Request, res: Response) => {
             amcTo: req.body.amcTo ? new Date(req.body.amcTo) : null
         };
 
-        const newItem = itemRepository.create(formData as Object);
-        newItem.lab = req.body.labId ? { id: req.body.labId } as any : undefined
-        newItem.vendor = req.body.vendorId ? { id: req.body.vendorId } as any : undefined
-        const result = await itemRepository.save(newItem);
+        const lab = await labRepository.findOneBy({ id : req.body.labId })
+        const category = await categoryRepository.findOneBy({id: req.body.itemCategory})
+        const lastItemNumber = (await itemRepository.query(`SELECT COUNT(DISTINCT "serialNumber")::int AS count from inventory_item`))[0].count + 1
+
+        let result: InventoryItem | InventoryItem[];
+        if (req.body.quantity == 1){
+            const equipmentID = `BITS/EEE/${lab!.code}/${category!.code}/${lastItemNumber}`
+            const newItem = itemRepository.create(formData as Object);
+            newItem.lab = req.body.labId ? { id: req.body.labId } as any : undefined
+            newItem.vendor = req.body.vendorId ? { id: req.body.vendorId } as any : undefined
+            newItem.equipmentID = equipmentID
+            newItem.serialNumber = lastItemNumber
+            result = await itemRepository.save(newItem);
+        }
+        else {
+            const baseEquipmentID = `BITS/EEE/${lab!.code}/${category!.code}/${lastItemNumber}`;
+            const items = Array.from({ length: req.body.quantity }, (_, i) => ({
+                ...formData,
+                lab: req.body.labId ? { id: req.body.labId } as any : undefined,
+                vendor: req.body.vendorId ? { id: req.body.vendorId } as any : undefined,
+                equipmentID: `${baseEquipmentID}-${i + 1}`,
+                serialNumber: lastItemNumber
+            }));
+            result = await itemRepository.save(itemRepository.create(items));
+        }
         res.status(201).json(result);
     } catch (error) {
         res.status(500).json({ message: 'Error adding inventory item', error });
@@ -329,7 +350,7 @@ export const addInventoryItem = async (req: Request, res: Response) => {
 export const getLastItemNumber = async (req: Request, res: Response) => {
 
     try {
-        const lastItemNumber = (await itemRepository.countBy({lab : { id : req.query.labId as string }})) + 1
+        const lastItemNumber = (await itemRepository.query(`SELECT COUNT(DISTINCT "serialNumber")::int AS count from inventory_item`))[0].count + 1
         res.status(200).json({ lastItemNumber });
     } catch (error) {
         res.status(500).json({ message: 'Error fetching inventory items', error });
@@ -349,46 +370,6 @@ export const getInventory = async (req: Request, res: Response) => {
         res.status(200).json(items);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching inventory items', error });
-        console.error(error);
-    }
-};
-
-// Controller to get a file based on the path saved in the inventory item fields
-export const getFile = async (req: Request, res: Response) => {
-    const { id } = req.params;
-    const { field } = req.query;
-
-    if (!id || !field) {
-        res.status(400).json({ message: 'Item ID and field are required' })
-        return
-    }
-
-    try {
-        const item = await itemRepository.findOneBy({ id });
-
-        if (!item) {
-            res.status(404).json({ message: 'Item not found' });
-            return
-        }
-
-        const filePath = item[field as keyof InventoryItem];
-
-        if (!filePath) {
-            res.status(404).json({ message: 'File not found for the specified field' });
-            return
-        }
-
-        const absolutePath = path.resolve(filePath as string);
-
-        fs.access(absolutePath, fs.constants.F_OK, (err) => {
-            if (err) {
-                return res.status(404).json({ message: 'File not found' });
-            }
-
-            res.sendFile(absolutePath);
-        });
-    } catch (error) {
-        res.status(500).json({ message: 'Error fetching file', error });
         console.error(error);
     }
 };

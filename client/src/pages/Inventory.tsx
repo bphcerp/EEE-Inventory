@@ -29,7 +29,7 @@ export const Inventory = () => {
     const columns: ColumnDef<InventoryItem>[] = [
 
         // Three pinned columns: Item Name, Category, PO Number
-        { accessorKey: 'equipmentID', header: 'Equipment ID' },
+        { accessorKey: 'equipmentID', header: 'Equipment ID', meta: { filterType: 'search' as TableFilterType } },
         { accessorKey: 'itemName', header: 'Item Name' },
         { accessorKey: 'itemCategory.name', header: 'Category', meta: { filterType: 'dropdown' as TableFilterType } },
         { accessorKey: 'poNumber', header: 'PO Number', meta: { filterType: 'search' as TableFilterType } },

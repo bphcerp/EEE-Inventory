@@ -41,6 +41,7 @@ export interface Category {
 
 export interface InventoryItem {
     id: string;
+    serialNumber: int
     lab: Laboratory;
     itemCategory: string;
     itemName: string;
