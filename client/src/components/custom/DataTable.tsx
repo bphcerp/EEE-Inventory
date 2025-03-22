@@ -18,7 +18,7 @@ import {
     getSortedRowModel,
     useReactTable,
 } from "@tanstack/react-table"
-import { ChevronDown } from "lucide-react"
+import { ArrowDown, ArrowUp, ChevronDown } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -75,6 +75,8 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
     const fakeScrollbarRef = useRef<HTMLDivElement>(null);
     const [tableWidth, setTableWidth] = useState(0);
 
+    const [cellLeftMap, setCellLeftMap] = useState<{ [key: string]: number }>({})
+
     // Improved scroll synchronization with debounce for performance
     useEffect(() => {
         const tableContainer = tableContainerRef.current;
@@ -86,7 +88,7 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
         const updateTableWidth = () => {
             const tableElement = tableContainer.querySelector("table");
             if (tableElement) {
-                const actualWidth = Math.max(tableElement.scrollWidth, tableContainer.scrollWidth);
+                const actualWidth = Math.max(tableElement.clientWidth, tableContainer.clientWidth);
                 setTableWidth(actualWidth);
             }
         };
@@ -122,6 +124,12 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
         };
     }, []);
 
+    useEffect(() => {
+        table.getAllColumns().filter(column => column.getIsPinned()).map(pinnedColumn => setCellLeftMap((prev) => ({
+            ...prev, [pinnedColumn.id]: document.getElementById(pinnedColumn.id)!.offsetLeft
+        })))
+    }, [])
+
     const isWithinRange = (row: Row<T>, columnId: string, value: any) => {
         const date = new Date(row.getValue(columnId));
         const [startDateString, endDateString] = value;
@@ -139,6 +147,20 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
         } else return true;
     }
 
+    const isWithinRangeNumber = (row: Row<T>, columnId: string, value: any) => {
+        const cellValue = Number(row.getValue(columnId))
+        const [start, end] = value;
+
+        if ((start || end) && !cellValue) return false;
+        if (start && !end) {
+            return cellValue >= start
+        } else if (!start && end) {
+            return cellValue <= end
+        } else if (start && end) {
+            return cellValue >= start && cellValue <= end
+        } else return true;
+    }
+
     const multiFilterFn = (row: Row<T>, columnId: string, filterValue: any) => {
         if (!filterValue || filterValue.length === 0) return true
         return filterValue.includes(row.getValue(columnId))
@@ -148,7 +170,7 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
         data,
         columns: columns.map((columnDef) => ({
             ...columnDef,
-            ...(columnDef.meta ? columnDef.meta.filterType === 'date-range' ? { filterFn: isWithinRange } : columnDef.meta.filterType === 'multiselect' ? { filterFn: multiFilterFn } : {} : {})
+            ...(columnDef.meta ? columnDef.meta.filterType === 'date-range' ? { filterFn: isWithinRange } : columnDef.meta.filterType === 'multiselect' ? { filterFn: multiFilterFn } : columnDef.meta.filterType === 'number-range' ? {filterFn: isWithinRangeNumber } :  {} : {})
         })),
         initialState: {
             ...initialState,
@@ -236,26 +258,42 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
                 );
             case "number-range":
                 return (
-                    <div className="flex space-x-2">
+                    <div className="flex space-x-2 w-64">
                         <Input
                             type="number"
-                            min={Number(column.getFacetedMinMaxValues()?.[0] ?? '')}
-                            max={Number(column.getFacetedMinMaxValues()?.[1] ?? '')}
                             value={(column.getFilterValue() as [number, number])?.[0] ?? ''}
                             onChange={(event) => {
-                                const [, max] = column.getFilterValue() as [number, number];
-                                column.setFilterValue([Number(event.target.value), max]);
+                                const prevFilterValue = column.getFilterValue() as [number, number]
+                                if (!event.target.value) {
+                                    column.setFilterValue([undefined, prevFilterValue[1]])
+                                    return
+                                }
+                                if (prevFilterValue) {
+                                    const [, max] = prevFilterValue
+                                    column.setFilterValue([event.target.value, max]);
+                                }
+                                else {
+                                    column.setFilterValue([event.target.value, undefined])
+                                }
                             }}
                             placeholder='Min'
                         />
                         <Input
                             type="number"
-                            min={Number(column.getFacetedMinMaxValues()?.[0] ?? '')}
-                            max={Number(column.getFacetedMinMaxValues()?.[1] ?? '')}
                             value={(column.getFilterValue() as [number, number])?.[1] ?? ''}
                             onChange={(event) => {
-                                const [min,] = column.getFilterValue() as [number, number];
-                                column.setFilterValue([min, Number(event.target.value)]);
+                                const prevFilterValue = column.getFilterValue() as [number, number]
+                                if (!event.target.value) {
+                                    column.setFilterValue([prevFilterValue[0], undefined])
+                                    return
+                                }
+                                if (prevFilterValue) {
+                                    const [min,] = prevFilterValue
+                                    column.setFilterValue([min, event.target.value]);
+                                }
+                                else {
+                                    column.setFilterValue([undefined, event.target.value]);
+                                }
                             }}
                             placeholder='Max'
                         />
@@ -332,7 +370,7 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
                                 <div className={`${table.getAllColumns().length >= 6 && 'grid grid-cols-3'} max-h-56 overflow-y-auto`}>
                                     {table
                                         .getAllColumns()
-                                        .filter((column) => column.getCanHide())
+                                        .filter((column) => column.getCanHide() && !column.getIsPinned())
                                         .map((column) => {
                                             return (
                                                 <DropdownMenuCheckboxItem
@@ -360,42 +398,55 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
                     <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (
                             <TableRow key={headerGroup.id}>
-                                    <TableHead className="z-2 w-[20px] sticky left-0 bg-background">
-                                        <Checkbox
-                                            checked={
-                                                table.getIsAllPageRowsSelected() ||
-                                                (table.getIsSomePageRowsSelected() && "indeterminate")
-                                            }
-                                            onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-                                            aria-label="Select all"
-                                        />
-                                    </TableHead>
-                                    {headerGroup.headers.filter((header) => header.column.getIsPinned()).map((header) => {
-                                        return (
-                                            <TableHead style={{ left:document.getElementById(header.column.id)?.offsetLeft }} className={`sticky bg-background h-full`} id={header.column.id} colSpan={header.colSpan} key={header.id}>
-                                                <div className={`flex flex-col w-max gap-y-2`}>
+                                <TableHead className="z-2 w-[20px] sticky left-0 bg-background">
+                                    <Checkbox
+                                        checked={
+                                            table.getIsAllPageRowsSelected() ||
+                                            (table.getIsSomePageRowsSelected() && "indeterminate")
+                                        }
+                                        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+                                        aria-label="Select all"
+                                    />
+                                </TableHead>
+                                {headerGroup.headers.filter((header) => header.column.getIsPinned()).map((header) => {
+                                    return (
+                                        <TableHead onClick={header.column.getToggleSortingHandler()} style={{ left: cellLeftMap[header.column.id] }} className={` ${header.column.getCanSort() ? 'cursor-pointer select-none' : ''} sticky bg-background h-full`} id={header.column.id} colSpan={header.colSpan} key={header.id}>
+                                            <div className='flex flex-col w-max gap-y-2'>
+                                                <div className="flex space-x-2">
                                                     {header.isPlaceholder
                                                         ? null
                                                         : flexRender(
                                                             header.column.columnDef.header,
                                                             header.getContext()
                                                         )}
+                                                    {header.column.getIsSorted() === "asc" ? <ArrowUp /> : header.column.getIsSorted() === "desc" ? <ArrowDown /> : null}
+                                                </div>
+                                                <div onClick={(e) => e.stopPropagation()}>
                                                     {(!mainSearchColumn || header.column.columnDef.header?.toString().toLowerCase() !== mainSearchColumn.toString().toLowerCase()) && renderFilter(header.column)}
                                                 </div>
-                                            </TableHead>
-                                        )
-                                    })}
+                                            </div>
+                                        </TableHead>
+                                    )
+                                })}
                                 {headerGroup.headers.filter((header) => !header.column.getIsPinned()).map((header) => {
                                     return (
-                                        <TableHead id={header.column.id} colSpan={header.colSpan} key={header.id}>
-                                            <div className={`flex flex-col w-max text-center items-start gap-y-2 py-2`}>
-                                                {header.isPlaceholder
-                                                    ? null
-                                                    : flexRender(
-                                                        header.column.columnDef.header,
-                                                        header.getContext()
-                                                    )}
-                                                {(!mainSearchColumn || header.column.columnDef.header?.toString().toLowerCase() !== mainSearchColumn.toString().toLowerCase()) && renderFilter(header.column)}
+                                        <TableHead  {...{
+                                            className: header.column.getCanSort() ? 'cursor-pointer select-none' : '',
+                                            onClick: header.column.getToggleSortingHandler(),
+                                        }} id={header.column.id} colSpan={header.colSpan} key={header.id}>
+                                            <div className='flex flex-col w-max text-center items-start gap-y-2 py-2'>
+                                                <div className="flex space-x-2">
+                                                    {header.isPlaceholder
+                                                        ? null
+                                                        : flexRender(
+                                                            header.column.columnDef.header,
+                                                            header.getContext()
+                                                        )}
+                                                    {header.column.getIsSorted() === "asc" ? <ArrowUp /> : header.column.getIsSorted() === "desc" ? <ArrowDown /> : null}
+                                                </div>
+                                                <div onClick={(e) => e.stopPropagation()}>
+                                                    {(!mainSearchColumn || header.column.columnDef.header?.toString().toLowerCase() !== mainSearchColumn.toString().toLowerCase()) && renderFilter(header.column)}
+                                                </div>
                                             </div>
                                         </TableHead>
                                     )
@@ -411,30 +462,30 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
 
                                     data-state={row.getIsSelected() && "selected"}
                                 >
-                                        <TableCell className="z-2 sticky left-0 bg-background w-[20px]">
-                                            <Checkbox
-                                                checked={row.getIsSelected()}
-                                                onCheckedChange={(value) => row.toggleSelected(!!value)}
-                                                aria-label="Select row"
-                                            />
+                                    <TableCell className="z-2 sticky left-0 bg-background w-[20px]">
+                                        <Checkbox
+                                            checked={row.getIsSelected()}
+                                            onCheckedChange={(value) => row.toggleSelected(!!value)}
+                                            aria-label="Select row"
+                                        />
+                                    </TableCell>
+                                    {row.getVisibleCells().filter((cell) => cell.column.getIsPinned()).map((cell) => (
+                                        <TableCell
+                                            className={`sticky left-0 bg-background ${(cell.column.columnDef.meta && ['date-range', 'number-range'].includes(cell.column.columnDef.meta.filterType ?? '')) ? 'text-center' : ''}`}
+                                            style={{ left: cellLeftMap[cell.column.id] }}
+                                            key={cell.id}
+                                            title={cell.getValue() && (cell.getValue() as any).toString().length > 20 ? (cell.getValue() as any).toString() : undefined}
+                                        >
+                                            {
+                                                (cell.column.columnDef.cell && typeof cell.getValue() !== 'string') ?
+                                                    flexRender(
+                                                        cell.column.columnDef.cell,
+                                                        cell.getContext()
+                                                    ) :
+                                                    <OverflowHandler text={cell.getValue() as string} maxWidth={cell.column.getSize()} />
+                                            }
                                         </TableCell>
-                                            {row.getVisibleCells().filter((cell) => cell.column.getIsPinned()).map((cell) => (
-                                                <TableCell
-                                                    className={`sticky left-0 bg-background ${(cell.column.columnDef.meta && ['date-range', 'number-range'].includes(cell.column.columnDef.meta.filterType ?? '')) ? 'text-center' : ''}`}
-                                                    style={{ left:document.getElementById(cell.column.id)?.offsetLeft }}
-                                                    key={cell.id}
-                                                    title={cell.getValue() && (cell.getValue() as any).toString().length > 20 ? (cell.getValue() as any).toString() : undefined}
-                                                >
-                                                    {
-                                                        (cell.column.columnDef.cell && typeof cell.getValue() !== 'string') ?
-                                                            flexRender(
-                                                                cell.column.columnDef.cell,
-                                                                cell.getContext()
-                                                            ) :
-                                                            <OverflowHandler text={cell.getValue() as string} maxWidth={cell.column.getSize()} />
-                                                    }
-                                                </TableCell>
-                                            ))}
+                                    ))}
                                     {row.getVisibleCells().filter((cell) => !cell.column.getIsPinned()).map((cell) => (
                                         <TableCell
                                             className={` ${(cell.column.columnDef.meta && ['date-range', 'number-range'].includes(cell.column.columnDef.meta.filterType ?? '')) ? 'text-center' : ''}`}
@@ -442,7 +493,7 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
                                             title={cell.getValue() && (cell.getValue() as any).toString().length > 20 ? (cell.getValue() as any).toString() : undefined}
                                         >
                                             {
-                                                cell.getValue() ? (columns.find(column => column.header === cell.column.columnDef.header)?.cell || typeof cell.getValue() !== 'string') ?
+                                                cell.getValue() ? (typeof (columns.find(column => column.header === cell.column.columnDef.header)?.cell) === 'function' || typeof cell.getValue() !== 'string') ?
                                                     flexRender(
                                                         cell.column.columnDef.cell,
                                                         cell.getContext()

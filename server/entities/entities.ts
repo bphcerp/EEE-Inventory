@@ -117,8 +117,8 @@ export class InventoryItem {
     @Column("text")
     specifications: string; // Specifications of the item
 
-    @Column("text")
-    quantity: string; // Quantity of the item
+    @Column("int")
+    quantity: number; // Quantity of the item
 
     @Column("int", { nullable: true })
     noOfLicenses?: number; // Number of licenses (if applicable)
@@ -144,7 +144,7 @@ export class InventoryItem {
     @Column("text", { nullable: true })
     labTechnicianAtPurchase?: string; // Lab technician at the time of purchase
 
-    @Column("text")
+    @Column("text", { unique: true })
     equipmentID: string; // Equipment ID
 
     @Column("text")

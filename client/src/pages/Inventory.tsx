@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import api from "@/axiosInterceptor";
 import { Link, useNavigate } from "react-router";
 import { InventoryItem } from "@/types/types";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export const Inventory = () => {
     const userPermissions = useUserPermissions();
@@ -15,8 +16,15 @@ export const Inventory = () => {
     const [loading, setLoading] = useState(true);
 
     const [showAllLabs, setShowAllLabs] = useState(Boolean(userPermissions));
+    const [vendorDetails, setVendorDetails] = useState<InventoryItem["vendor"] | null>(null);
+    const [isVendorDialogOpen, setVendorDialogOpen] = useState(false);
 
     const navigate = useNavigate()
+
+    const handleVendorClick = (vendor: InventoryItem["vendor"]) => {
+        setVendorDetails(vendor);
+        setVendorDialogOpen(true);
+    };
 
     const columns: ColumnDef<InventoryItem>[] = [
 
@@ -32,9 +40,8 @@ export const Inventory = () => {
 
         // Unpinned columns
         { accessorFn: (row) => row.quantity.toString() , header: 'Quantity', meta: { filterType: 'number-range' as TableFilterType } },
-        { accessorKey: 'poAmount', header: 'PO Amount', cell: ({ getValue }) => (Number(getValue())).toLocaleString('en-IN', { style: "currency", currency: "INR" }), meta: { filterType: 'number-range' as TableFilterType } },
+        { accessorFn: (row) => Number(row.poAmount) , header: 'PO Amount', cell: ({ getValue }) => (getValue() as number).toLocaleString('en-IN', { style: "currency", currency: "INR" }), meta: { filterType: 'number-range' as TableFilterType } },
         { accessorKey: 'poDate', header: 'PO Date', meta: { filterType: 'date-range' as TableFilterType } },
-        { accessorKey: 'vendorName', header: 'Vendor Name', meta: { filterType: 'dropdown' as TableFilterType } },
         { accessorKey: 'currentLocation', header: 'Current Location', meta: { filterType: 'dropdown' as TableFilterType } },
         { accessorFn: (row) => row.status ?? "Not Provided" , header: 'Status', meta: { filterType: 'dropdown' as TableFilterType } },
         { accessorKey: 'specifications', header: 'Specifications' },
@@ -43,20 +50,28 @@ export const Inventory = () => {
         { accessorKey: 'yearOfLease', header: 'Year of Lease', meta: { filterType: 'dropdown' as TableFilterType } },
         { accessorKey: 'fundingSource', header: 'Funding Source',meta: { filterType: 'dropdown' as TableFilterType } },
         { accessorKey: 'dateOfInstallation', header: 'Date of Installation', meta: { filterType: 'date-range' as TableFilterType } },
-        { accessorKey: 'vendor.name', header: 'Vendor Name' },
-        { accessorKey: 'vendor.address', header: 'Vendor Address' },
-        { accessorKey: 'vendor.pocName', header: 'Vendor POC Name' },
-        { accessorKey: 'vendor.phoneNumber', header: 'Vendor POC Phone Number' },
-        { accessorKey: 'vendor.email', header: 'Vendor POC Email ID' },
+        { 
+            accessorKey: 'vendor.name', 
+            header: 'Vendor Name', 
+            cell: ({ row,getValue }) => (
+                <Button variant="link" onClick={() => handleVendorClick(row.original.vendor)}>
+                    {getValue() as string}
+                </Button>
+            ) 
+        },
+        // { accessorKey: 'vendor.address', header: 'Vendor Address' },
+        // { accessorKey: 'vendor.pocName', header: 'Vendor POC Name' },
+        // { accessorKey: 'vendor.phoneNumber', header: 'Vendor POC Phone Number' },
+        // { accessorKey: 'vendor.email', header: 'Vendor POC Email ID' },
         { accessorKey: 'warrantyFrom', header: 'Warranty From', meta: { filterType: 'date-range' as TableFilterType } },
         { accessorKey: 'warrantyTo', header: 'Warranty To', meta: { filterType: 'date-range' as TableFilterType } },
         { accessorKey: 'amcFrom', header: 'AMC From', meta: { filterType: 'date-range' as TableFilterType } },
         { accessorKey: 'amcTo', header: 'AMC To', meta: { filterType: 'date-range' as TableFilterType } },
-        { accessorKey: 'softcopyOfPO', header: 'Softcopy of PO', cell: ({ getValue }) => (getValue() as string | null) ? <Link target="_blank" rel="noopener noreferrer" to={getValue()!}><Button variant="link">View</Button></Link> : "Not Uploaded" },
-        { accessorKey: 'softcopyOfInvoice', header: 'Softcopy of Invoice', cell: ({ getValue }) => (getValue() as string | null) ? <Link target="_blank" rel="noopener noreferrer" to={getValue()!}><Button variant="link">View</Button></Link> : "Not Uploaded" },
-        { accessorKey: 'softcopyOfNFA', header: 'Softcopy of NFA', cell: ({ getValue }) => (getValue() as string | null) ? <Link target="_blank" rel="noopener noreferrer" to={getValue()!}><Button variant="link">View</Button></Link> : "Not Uploaded" },
-        { accessorKey: 'softcopyOfAMC', header: 'Softcopy of AMC', cell: ({ getValue }) => (getValue() as string | null) ? <Link target="_blank" rel="noopener noreferrer" to={getValue()!}><Button variant="link">View</Button></Link> : "Not Uploaded" },
-        { accessorKey: 'equipmentPhoto', header: 'Equipment Photo', cell: ({ getValue }) => (getValue() as string | null) ? <Link target="_blank" rel="noopener noreferrer" to={getValue()!}><Button variant="link">View</Button></Link> : "Not Uploaded" },
+        { accessorKey: 'softcopyOfPO', enableColumnFilter: false, header: 'Softcopy of PO', cell: ({ getValue }) => (getValue() as string | null) ? <Link target="_blank" rel="noopener noreferrer" to={getValue()!}><Button variant="link">View</Button></Link> : "Not Uploaded" },
+        { accessorKey: 'softcopyOfInvoice', enableColumnFilter: false, header: 'Softcopy of Invoice', cell: ({ getValue }) => (getValue() as string | null) ? <Link target="_blank" rel="noopener noreferrer" to={getValue()!}><Button variant="link">View</Button></Link> : "Not Uploaded" },
+        { accessorKey: 'softcopyOfNFA', enableColumnFilter: false, header: 'Softcopy of NFA', cell: ({ getValue }) => (getValue() as string | null) ? <Link target="_blank" rel="noopener noreferrer" to={getValue()!}><Button variant="link">View</Button></Link> : "Not Uploaded" },
+        { accessorKey: 'softcopyOfAMC', enableColumnFilter: false, header: 'Softcopy of AMC', cell: ({ getValue }) => (getValue() as string | null) ? <Link target="_blank" rel="noopener noreferrer" to={getValue()!}><Button variant="link">View</Button></Link> : "Not Uploaded" },
+        { accessorKey: 'equipmentPhoto', enableColumnFilter: false, header: 'Equipment Photo', cell: ({ getValue }) => (getValue() as string | null) ? <Link target="_blank" rel="noopener noreferrer" to={getValue()!}><Button variant="link">View</Button></Link> : "Not Uploaded" },
         { accessorKey: 'remarks', header: 'Remarks' },
     ];
 
@@ -88,6 +103,24 @@ export const Inventory = () => {
                     }
                 }} additionalButtons={userPermissions ? <Button onClick={() => navigate('/add-item')}>Add Item</Button> : <Button variant="link" onClick={() => setShowAllLabs(!showAllLabs)}>Show {showAllLabs ? 'My Labs' : 'All Labs'}</Button>} />
             )}
+            <Dialog open={isVendorDialogOpen} onOpenChange={setVendorDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Vendor Details</DialogTitle>
+                    </DialogHeader>
+                    {vendorDetails ? (
+                        <div>
+                            <p><strong>Name:</strong> {vendorDetails.name}</p>
+                            <p><strong>Address:</strong> {vendorDetails.address}</p>
+                            <p><strong>POC Name:</strong> {vendorDetails.pocName}</p>
+                            <p><strong>Phone Number:</strong> {vendorDetails.phoneNumber}</p>
+                            <p><strong>Email:</strong> {vendorDetails.email}</p>
+                        </div>
+                    ) : (
+                        <p>No vendor details available.</p>
+                    )}
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

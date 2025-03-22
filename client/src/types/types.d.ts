@@ -45,7 +45,7 @@ export interface InventoryItem {
     itemCategory: string;
     itemName: string;
     specifications: string;
-    quantity: string;
+    quantity: number;
     noOfLicenses?: number;
     natureOfLicense?: string;
     yearOfLease?: number;
