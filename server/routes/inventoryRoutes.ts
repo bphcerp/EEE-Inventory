@@ -3,8 +3,7 @@
  * @description Routes for managing inventory-related operations.
  */
 
-import { addBulkData, addInventoryItem, getAccessToken, getInventory, getLastItemNumber, transferItems } from '../controllers/inventoryController';
-import path from 'path';
+import { addBulkData, addInventoryItem, getAccessToken, getInventory, getLastItemNumber, transferItems, getImportantDates } from '../controllers/inventoryController';
 import { Router } from 'websocket-express';
 import checkAdminMiddlewareforGET from '../middleware/checkAdminMiddlewareforGet';
 
@@ -27,5 +26,8 @@ router.get('/token',checkAdminMiddlewareforGET, getAccessToken)
 
 // Websocket listener to bulk add from Excel
 router.ws('/excel', addBulkData);
+
+// Route to get items with important dates (warrantyTo or amcTo expiring within a week)
+router.get('/important-dates', getImportantDates);
 
 export default router;

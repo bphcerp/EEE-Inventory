@@ -16,6 +16,7 @@ import NotAllowed from './pages/NotAllowed'
 import './axiosInterceptor'
 import AddInventoryItem from './pages/AddInventoryItem'
 import BulkAddFromExcel from './pages/BulkAddFromExcel'
+import Dashboard from './pages/Dashboard'
 
 const RedirectHandler = () => {
   const userPermissions = useUserPermissions();
@@ -37,7 +38,7 @@ createRoot(document.getElementById('root')!).render(
             <Route path="/" element={<RedirectHandler />} />
             <Route path='/login' element={<LoginPage />} />
             <Route element={<Layout />}>
-            <Route path='/dashboard' element={<div>Stats will appear here</div>} />
+            <Route path='/dashboard' element={<Dashboard />} />
             <Route path='/inventory' element={<Inventory />} />
             <Route path='/about' element={<About />} />
               <Route element={<AdminOnlyRoutes/>}>

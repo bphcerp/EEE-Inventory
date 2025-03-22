@@ -52,17 +52,17 @@ export interface InventoryItem {
     yearOfLease?: number;
     poAmount: number;
     poNumber?: string; 
-    poDate?: Date;
+    poDate?: Date | string;
     labInchargeAtPurchase?: string
     labTechnicianAtPurchase?: string;
     equipmentID: string;
     fundingSource: string;
-    dateOfInstallation?: Date;
+    dateOfInstallation?: Date | string;
     vendor: Vendor;
-    warrantyFrom?: Date;
-    warrantyTo?: Date;
-    amcFrom?: Date;
-    amcTo?: Date;
+    warrantyFrom?: Date | string;
+    warrantyTo?: Date | string;
+    amcFrom?: Date | string;
+    amcTo?: Date | string;
     currentLocation: string;
     softcopyOfPO?: string;
     softcopyOfInvoice?: string;

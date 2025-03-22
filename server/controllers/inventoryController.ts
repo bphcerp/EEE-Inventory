@@ -5,7 +5,7 @@
 
 import { Request, Response } from 'express';
 import { categoryRepository, itemRepository, labRepository, tokenRepository, userRepository } from '../repositories/repositories';
-import { In, IsNull } from 'typeorm';
+import { In, IsNull, LessThanOrEqual } from 'typeorm';
 import fs from 'fs';
 import path from 'path';
 import { Category, InventoryItem, Laboratory, User } from '../entities/entities';
@@ -350,6 +350,8 @@ export const addInventoryItem = async (req: Request, res: Response) => {
     }
 };
 
+
+
 // Get serial number for a to be added item (no of items for that lab + 1)
 export const getLastItemNumber = async (req: Request, res: Response) => {
 
@@ -435,6 +437,27 @@ export const transferItems = async (req: Request, res: Response) => {
         res.status(200).json({ message: "Items transferred successfully", transferredItems: createdItems });
     } catch (error) {
         res.status(500).json({ message: 'Error transferring items', error });
+        console.error(error);
+    }
+};
+
+export const getImportantDates = async (req: Request, res: Response) => {
+    try {
+        const today = new Date();
+        const nextWeek = new Date();
+        nextWeek.setDate(today.getDate() + 7);
+
+        const items = await itemRepository.find({
+            where: [
+                { warrantyTo: LessThanOrEqual(nextWeek) },
+                { amcTo: LessThanOrEqual(nextWeek) }
+            ],
+            relations: ['lab']
+        });
+
+        res.status(200).json(items);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching important dates', error });
         console.error(error);
     }
 };
