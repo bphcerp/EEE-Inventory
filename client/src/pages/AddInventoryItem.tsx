@@ -1,3 +1,5 @@
+"use client"
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,7 +19,7 @@ const AddInventoryItem = () => {
     const [filteredLabs, setFilteredLabs] = useState<Laboratory[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
     const [vendors, setVendors] = useState<Vendor[]>([])
-    const [lastItemNumber, setItemNumber] = useState(0)
+    const [lastItemNumber, setLastItemNumber] = useState()
 
     const location = useLocation()
 
@@ -35,11 +37,12 @@ const AddInventoryItem = () => {
             setVendors(data);
         });
 
-        api("/inventory/lastItemNumber").then(({ data }) => {
-            setItemNumber(data.lastItemNumber);
-        });
-
     }, []);
+
+
+    const updateLastItemNumber = (labId: string) => {
+        api(`/inventory/lastItemNumber/${labId}`).then(({data}) => setLastItemNumber(data.lastItemNumber))
+    }
 
     const { Field, Subscribe, handleSubmit, setFieldValue } = useForm({
         defaultValues: location.state ?? {
@@ -110,7 +113,10 @@ const AddInventoryItem = () => {
                             {(field) => (
                                 <div className="flex flex-col space-y-2">
                                     <Label>Lab</Label>
-                                    <Select value={field.state.value} onValueChange={(value) => field.handleChange(value)}>
+                                    <Select value={field.state.value} onValueChange={(value) => {
+                                        field.handleChange(value)
+                                        updateLastItemNumber(value)
+                                    }}>
                                         <SelectTrigger className="w-52">
                                             <SelectValue placeholder="Select Lab" />
                                         </SelectTrigger>
@@ -165,12 +171,12 @@ const AddInventoryItem = () => {
                 </div>
                 <span className="text-2xl text-zinc-600 dark:text-zinc-300">Item Details</span>
                 <div className="grid grid-cols-3 gap-4">
-                    <Subscribe selector={(state) => [state.values.labId, state.values.itemCategory, state.values.quantity]} children={([labId, categoryId, quantity]) => {
+                    <Subscribe selector={(state) => [state.values.labId, state.values.itemCategory, state.values.quantity, lastItemNumber]} children={([labId, categoryId, quantity, lastItemNumber]) => {
 
                         const lab = labs.find(lab => lab.id === labId)
                         const categoryCode = categories.find(cateogory => cateogory.id === categoryId)?.code
 
-                        const equipmentID = (lab && categoryCode) ? `BITS/EEE/${lab.code}/${categoryCode}/${quantity > 1 ? `${lastItemNumber}-(1-${quantity})` : lastItemNumber}` : ''
+                        const equipmentID = (lab && categoryCode && lastItemNumber) ? `BITS/EEE/${lab.code}/${categoryCode}/${quantity > 1 ? `${lastItemNumber}-(1-${quantity})` : lastItemNumber}` : ''
                         setFieldValue('equipmentID', equipmentID)
                         return (<Field name="equipmentID">
                             {({ state }) => (

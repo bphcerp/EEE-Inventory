@@ -9,6 +9,7 @@ import api from "@/axiosInterceptor";
 import { Link, useNavigate } from "react-router";
 import { InventoryItem } from "@/types/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { TransferConfirmationDialog } from "@/components/custom/TransferConfirmationDialog";
 
 export const Inventory = () => {
     const userPermissions = useUserPermissions();
@@ -18,12 +19,20 @@ export const Inventory = () => {
     const [showAllLabs, setShowAllLabs] = useState(Boolean(userPermissions));
     const [vendorDetails, setVendorDetails] = useState<InventoryItem["vendor"] | null>(null);
     const [isVendorDialogOpen, setVendorDialogOpen] = useState(false);
+    const [selectedItems, setSelectedItems] = useState<InventoryItem[]>([])
+    const [isTransferDialogOpen, setTransferDialogOpen] = useState(false);
 
     const navigate = useNavigate()
 
     const handleVendorClick = (vendor: InventoryItem["vendor"]) => {
         setVendorDetails(vendor);
         setVendorDialogOpen(true);
+    };
+
+    const handleTransferSuccess = () => {
+        setSelectedItems([]);
+        setTransferDialogOpen(false);
+        toast.success("Transfer completed successfully!");
     };
 
     const columns: ColumnDef<InventoryItem>[] = [
@@ -101,8 +110,21 @@ export const Inventory = () => {
                     columnPinning: {
                         left: ['equipmentID', 'itemName', 'itemCategory', 'poNumber']
                     }
-                }} additionalButtons={userPermissions ? <Button onClick={() => navigate('/add-item')}>Add Item</Button> : <Button variant="link" onClick={() => setShowAllLabs(!showAllLabs)}>Show {showAllLabs ? 'My Labs' : 'All Labs'}</Button>} />
+                }} setSelected={setSelectedItems} additionalButtons={<>
+                    {selectedItems.length ? (
+                        <Button variant="outline" onClick={() => setTransferDialogOpen(true)}>
+                            Transfer
+                        </Button>
+                    ) : <></>}
+                    <Button onClick={() => navigate('/add-item')}>Add Item</Button>
+                </>} />
             )}
+            <TransferConfirmationDialog 
+                open={isTransferDialogOpen} 
+                onClose={() => setTransferDialogOpen(false)} 
+                selectedItems={selectedItems} 
+                onTransferSuccess={handleTransferSuccess} 
+            />
             <Dialog open={isVendorDialogOpen} onOpenChange={setVendorDialogOpen}>
                 <DialogContent>
                     <DialogHeader>

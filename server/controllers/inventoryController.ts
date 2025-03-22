@@ -5,10 +5,10 @@
 
 import { Request, Response } from 'express';
 import { categoryRepository, itemRepository, labRepository, tokenRepository, userRepository } from '../repositories/repositories';
-import { In } from 'typeorm';
+import { In, IsNull } from 'typeorm';
 import fs from 'fs';
 import path from 'path';
-import { InventoryItem, Laboratory, User } from '../entities/entities';
+import { Category, InventoryItem, Laboratory, User } from '../entities/entities';
 import { WSResponse } from 'websocket-express';
 import * as XLSX from 'xlsx';
 
@@ -316,7 +316,11 @@ export const addInventoryItem = async (req: Request, res: Response) => {
 
         const lab = await labRepository.findOneBy({ id : req.body.labId })
         const category = await categoryRepository.findOneBy({id: req.body.itemCategory})
-        const lastItemNumber = (await itemRepository.query(`SELECT COUNT(DISTINCT "serialNumber")::int AS count from inventory_item`))[0].count + 1
+        const lastItemNumber = (await itemRepository.query(`
+            SELECT COUNT(DISTINCT "serialNumber")::int AS count 
+            FROM inventory_item 
+            WHERE "labId" = $1
+        `, [req.body.labId]))[0].count + 1
 
         let result: InventoryItem | InventoryItem[];
         if (req.body.quantity == 1){
@@ -350,7 +354,11 @@ export const addInventoryItem = async (req: Request, res: Response) => {
 export const getLastItemNumber = async (req: Request, res: Response) => {
 
     try {
-        const lastItemNumber = (await itemRepository.query(`SELECT COUNT(DISTINCT "serialNumber")::int AS count from inventory_item`))[0].count + 1
+        const lastItemNumber = (await itemRepository.query(`
+            SELECT COUNT(DISTINCT "serialNumber")::int AS count 
+            FROM inventory_item 
+            WHERE "labId" = $1
+        `, [req.params.labId]))[0].count + 1
         res.status(200).json({ lastItemNumber });
     } catch (error) {
         res.status(500).json({ message: 'Error fetching inventory items', error });
@@ -364,12 +372,69 @@ export const getInventory = async (req: Request, res: Response) => {
 
     try {
         const items = await itemRepository.find({
+            where: { transfer: IsNull()},
             relations: ['lab', 'vendor', 'itemCategory']
         });
 
         res.status(200).json(items);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching inventory items', error });
+        console.error(error);
+    }
+};
+
+
+// Transfer items from one lab to another
+export const transferItems = async (req: Request, res: Response) => {
+    try {
+        const { itemIds, destLabId } = req.body;
+
+        if (!itemIds || !destLabId) {
+            res.status(400).json({ message: "itemIds and destLabId are required" });
+            return
+        }
+
+        const destLab = await labRepository.findOneBy({ id: destLabId });
+        if (!destLab) {
+            res.status(404).json({ message: "Destination lab not found" });
+            return
+        }
+
+        const itemsToTransfer = await itemRepository.find({ where : { id : In(itemIds) }, relations: ['lab', 'itemCategory']});
+        if (itemsToTransfer.length !== itemIds.length) {
+            res.status(404).json({ message: "Some items not found" });
+            return
+        }
+
+        const lastItemNumber = (await itemRepository.query(`
+            SELECT COUNT(DISTINCT "serialNumber")::int AS count 
+            FROM inventory_item 
+            WHERE "labId" = $1
+        `, [destLabId]))[0].count + 1;
+
+        const newItems = itemsToTransfer.map((item, index) => {
+            const newEquipmentID = item.equipmentID.includes('-')
+                ? `BITS/EEE/${destLab.code}/${(item.itemCategory as unknown as Category).code}/${lastItemNumber}-${item.equipmentID.split('-')[1]}`
+                : `BITS/EEE/${destLab.code}/${(item.itemCategory as unknown as Category).code}/${lastItemNumber}`;
+            return {
+                ...item,
+                id: undefined, // Let TypeORM generate a new ID
+                lab: destLab,
+                equipmentID: newEquipmentID,
+            };
+        });
+
+        const createdItems = await itemRepository.save(itemRepository.create(newItems));
+
+        // Update the transfer field of the old items
+        for (let i = 0; i < itemsToTransfer.length; i++) {
+            itemsToTransfer[i].transfer = createdItems[i];
+        }
+        await itemRepository.save(itemsToTransfer);
+
+        res.status(200).json({ message: "Items transferred successfully", transferredItems: createdItems });
+    } catch (error) {
+        res.status(500).json({ message: 'Error transferring items', error });
         console.error(error);
     }
 };

@@ -47,6 +47,7 @@ interface DataTableProps<T> {
     // If mainSearchColumn is set, the meta filter options if set are ignored as there is a global filter already present.
     mainSearchColumn?: keyof T;
     initialState?: InitialTableState
+    setSelected?: (selected: Array<T>) => void;
     additionalButtons?: ReactNode
 }
 
@@ -62,7 +63,7 @@ declare module '@tanstack/react-table' {
     }
 }
 
-export function DataTable<T>({ data, columns, mainSearchColumn, initialState, additionalButtons }: DataTableProps<T>) {
+export function DataTable<T>({ data, columns, mainSearchColumn, initialState,setSelected, additionalButtons }: DataTableProps<T>) {
     const [sorting, setSorting] = useState<SortingState>([])
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(
         []
@@ -125,7 +126,7 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
     }, []);
 
     useEffect(() => {
-        table.getAllColumns().filter(column => column.getIsPinned()).map(pinnedColumn => setCellLeftMap((prev) => ({
+        if (data.length) table.getAllColumns().filter(column => column.getIsPinned()).map(pinnedColumn => setCellLeftMap((prev) => ({
             ...prev, [pinnedColumn.id]: document.getElementById(pinnedColumn.id)!.offsetLeft
         })))
     }, [])
@@ -196,6 +197,10 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, ad
             rowSelection,
         },
     })
+
+    useEffect(() => {
+        if (setSelected) setSelected(Object.keys(table.getState().rowSelection).map(row => table.getRow(row).original))
+    }, [table.getState().rowSelection])
 
     const renderFilter = (column: Column<T>) => {
         const filterType = column.columnDef.meta?.filterType;

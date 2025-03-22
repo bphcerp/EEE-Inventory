@@ -111,6 +111,10 @@ export class InventoryItem {
     @ManyToOne(() => Laboratory)
     lab: Laboratory; // Foreign key to the laboratory
 
+    @OneToOne(() => InventoryItem, { nullable: true })
+    @JoinColumn()
+    transfer?: InventoryItem; // Foreign key to the transferred item (is set once the item is transferred)
+
     @ManyToOne(() => Category)
     itemCategory: string; // Category of the item
 
