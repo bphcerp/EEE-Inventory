@@ -30,6 +30,7 @@ export interface Vendor {
     pocName: string;
     phoneNumber: string;
     email: string;
+    categories: Category[]
 }
 
 export interface Category {

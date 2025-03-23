@@ -3,11 +3,11 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 import { Ref } from "react"
 
-function Table({ className,tableContainerRef, ...props }: React.ComponentProps<"table"> & { tableContainerRef?: Ref<HTMLDivElement> }) {
+function Table({ className,tableContainerRef,hideScrollBar = false, ...props }: React.ComponentProps<"table"> & { tableContainerRef?: Ref<HTMLDivElement>; hideScrollBar? : boolean }) {
   return (
     <div
       data-slot="table-container"
-      className="relative w-full overflow-x-auto hide-scrollbar"
+      className={`relative w-full overflow-x-auto ${hideScrollBar?'hide-scrollbar':''}`}
       ref={tableContainerRef}
     >
       <table

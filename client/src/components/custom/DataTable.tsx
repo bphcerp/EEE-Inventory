@@ -43,7 +43,6 @@ import OverflowHandler from "./OverflowHandler"
 interface DataTableProps<T> {
     data: T[];
     columns: ColumnDef<T>[];
-
     // If mainSearchColumn is set, the meta filter options if set are ignored as there is a global filter already present.
     mainSearchColumn?: keyof T;
     initialState?: InitialTableState
@@ -56,14 +55,13 @@ export type TableFilterType = "dropdown" | "multiselect" | "search" | "number-ra
 // Extend ColumnMeta interface to add custom properties
 declare module '@tanstack/react-table' {
     interface ColumnMeta<TData extends RowData, TValue> {
-        getSum?: boolean;
-        sumFormatter?: (sum: number) => string;
+        calculateSum?: (rows: TData[]) => string
         truncateLength?: number
         filterType?: TableFilterType
     }
 }
 
-export function DataTable<T>({ data, columns, mainSearchColumn, initialState,setSelected, additionalButtons }: DataTableProps<T>) {
+export function DataTable<T>({ data, columns, mainSearchColumn, initialState, setSelected, additionalButtons }: DataTableProps<T>) {
     const [sorting, setSorting] = useState<SortingState>([])
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(
         []
@@ -171,7 +169,7 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState,set
         data,
         columns: columns.map((columnDef) => ({
             ...columnDef,
-            ...(columnDef.meta ? columnDef.meta.filterType === 'date-range' ? { filterFn: isWithinRange } : columnDef.meta.filterType === 'multiselect' ? { filterFn: multiFilterFn } : columnDef.meta.filterType === 'number-range' ? {filterFn: isWithinRangeNumber } :  {} : {})
+            ...(columnDef.meta ? columnDef.meta.filterType === 'date-range' ? { filterFn: isWithinRange } : columnDef.meta.filterType === 'multiselect' ? { filterFn: multiFilterFn } : columnDef.meta.filterType === 'number-range' ? { filterFn: isWithinRangeNumber } : {} : {})
         })),
         initialState: {
             ...initialState,
@@ -398,8 +396,8 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState,set
                     </div>
                 </div>
             </div>
-            {data.length ? <div className="relativerounded-md border p-2">
-                <Table tableContainerRef={tableContainerRef} className='table-auto'>
+            {data.length ? <div className="relative rounded-md border p-2">
+                <Table hideScrollBar tableContainerRef={tableContainerRef} className='table-auto'>
                     <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (
                             <TableRow key={headerGroup.id}>
@@ -482,12 +480,12 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState,set
                                             title={cell.getValue() && (cell.getValue() as any).toString().length > 20 ? (cell.getValue() as any).toString() : undefined}
                                         >
                                             {
-                                                cell.getValue() ? (typeof (columns.find(column => column.header === cell.column.columnDef.header)?.cell) === 'function' || typeof cell.getValue() !== 'string') ?
-                                                flexRender(
-                                                    cell.column.columnDef.cell,
-                                                    cell.getContext()
-                                                ) :
-                                                <OverflowHandler text={cell.getValue() as string} /> : <div className="w-full text-start p-0.5">Not Provided</div>
+                                                (typeof (columns.find(column => column.header === cell.column.columnDef.header)?.cell) === 'function' || (cell.getValue() && typeof cell.getValue() !== 'string')) ?
+                                                    flexRender(
+                                                        cell.column.columnDef.cell,
+                                                        cell.getContext()
+                                                    ) :
+                                                    cell.getValue() ? <OverflowHandler text={cell.getValue() as string} /> : <div className="w-full text-start p-0.5">Not Provided</div>
                                             }
                                         </TableCell>
                                     ))}
@@ -498,17 +496,34 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState,set
                                             title={cell.getValue() && (cell.getValue() as any).toString().length > 20 ? (cell.getValue() as any).toString() : undefined}
                                         >
                                             {
-                                                cell.getValue() ? (typeof (columns.find(column => column.header === cell.column.columnDef.header)?.cell) === 'function' || typeof cell.getValue() !== 'string') ?
+                                                (typeof (columns.find(column => column.header === cell.column.columnDef.header)?.cell) === 'function' || (cell.getValue() && typeof cell.getValue() !== 'string')) ?
                                                     flexRender(
                                                         cell.column.columnDef.cell,
                                                         cell.getContext()
                                                     ) :
-                                                    <OverflowHandler text={cell.getValue() as string} /> : <div className="w-full text-start p-0.5">Not Provided</div>
+                                                    cell.getValue() ? <OverflowHandler text={cell.getValue() as string} /> : <div className="w-full text-start p-0.5">Not Provided</div>
                                             }
                                         </TableCell>
                                     ))}
                                 </TableRow>
                             ))
+                        }
+                        {
+                            columns.some(column => column.meta?.calculateSum)? <TableRow>
+                            <TableCell className="z-2 sticky left-0 bg-background w-[20px]">
+                                {/* Empty cell for the checkbox column */}
+                            </TableCell>
+                            {table.getVisibleLeafColumns().map((column) => (
+                                <TableCell
+                                    key={column.id}
+                                    className="font-bold text-center"
+                                >
+                                    {column.columnDef.meta?.calculateSum
+                                        ? column.columnDef.meta.calculateSum(table.getRowModel().rows.map(row => row.original))
+                                        : null}
+                                </TableCell>
+                            ))}
+                        </TableRow> : <></>
                         }
                     </TableBody> : <div>
                         <div className="flex flex-col items-center justify-center">

@@ -4,12 +4,13 @@
  */
 
 import { Request, Response } from 'express';
-import { vendorRepository } from '../repositories/repositories';
+import { vendorRepository, categoryRepository } from '../repositories/repositories';
+import { In } from 'typeorm';
 
 // Get All Vendors Controller
 export const getAllVendors = async (_req: Request, res: Response) => {
     try {
-        const vendors = await vendorRepository.find();
+        const vendors = await vendorRepository.find({relations : ['categories']});
         res.status(200).json(vendors);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching vendors', error });
@@ -20,7 +21,10 @@ export const getAllVendors = async (_req: Request, res: Response) => {
 // Add Vendor Controller
 export const addVendor = async (req: Request, res: Response) => {
     try {
-        const newVendor = await vendorRepository.save(req.body);
+        const vendorData = req.body;
+        const categoryEntities = await categoryRepository.findBy({ id : In(vendorData.categories)});
+        const newVendor = vendorRepository.create({ ...vendorData, categories: categoryEntities });
+        await vendorRepository.save(newVendor);
         res.status(201).json(newVendor);
     } catch (error) {
         res.status(500).json({ message: 'Error adding vendor', error });

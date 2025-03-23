@@ -317,7 +317,7 @@ export const addInventoryItem = async (req: Request, res: Response) => {
         const lab = await labRepository.findOneBy({ id : req.body.labId })
         const category = await categoryRepository.findOneBy({id: req.body.itemCategory})
         const lastItemNumber = (await itemRepository.query(`
-            SELECT COUNT(DISTINCT "serialNumber")::int AS count 
+            SELECT MAX("serialNumber")::int AS count 
             FROM inventory_item 
             WHERE "labId" = $1
         `, [req.body.labId]))[0].count + 1
@@ -357,7 +357,7 @@ export const getLastItemNumber = async (req: Request, res: Response) => {
 
     try {
         const lastItemNumber = (await itemRepository.query(`
-            SELECT COUNT(DISTINCT "serialNumber")::int AS count 
+            SELECT MAX("serialNumber")::int AS count 
             FROM inventory_item 
             WHERE "labId" = $1
         `, [req.params.labId]))[0].count + 1
@@ -402,14 +402,14 @@ export const transferItems = async (req: Request, res: Response) => {
             return
         }
 
-        const itemsToTransfer = await itemRepository.find({ where : { id : In(itemIds) }, relations: ['lab', 'itemCategory']});
+        const itemsToTransfer = await itemRepository.find({ where : { id : In(itemIds), transfer: IsNull() }, relations: ['lab', 'itemCategory', 'vendor']});
         if (itemsToTransfer.length !== itemIds.length) {
             res.status(404).json({ message: "Some items not found" });
             return
         }
 
         const lastItemNumber = (await itemRepository.query(`
-            SELECT COUNT(DISTINCT "serialNumber")::int AS count 
+            SELECT MAX("serialNumber")::int AS count 
             FROM inventory_item 
             WHERE "labId" = $1
         `, [destLabId]))[0].count + 1;

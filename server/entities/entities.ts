@@ -83,6 +83,10 @@ export class Vendor {
 
     @Column("text")
     email: string; // Vendor point of contact email ID
+
+    @ManyToMany(() => Category)
+    @JoinTable()
+    categories: Category[]
 } 
 
 // AccessToken entity
@@ -116,7 +120,7 @@ export class InventoryItem {
     transfer?: InventoryItem; // Foreign key to the transferred item (is set once the item is transferred)
 
     @ManyToOne(() => Category)
-    itemCategory: string; // Category of the item
+    itemCategory: Category;
 
     @Column("text")
     itemName: string; // Name of the item

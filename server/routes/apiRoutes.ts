@@ -12,6 +12,7 @@ import inventoryRoutes from './inventoryRoutes'
 import { Router } from "websocket-express";
 import vendorRoutes from "./vendorRoutes";
 import categoryRoutes from './categoryRoutes';
+import statsRoutes from "./statsRoutes";
 
 const router = new Router();
 
@@ -32,7 +33,9 @@ router.use('/inventory',authMiddleware, inventoryRoutes);
 
 router.useHTTP('/vendors',authMiddleware, vendorRoutes);
 
-router.use('/categories', authMiddleware, categoryRoutes);
+router.useHTTP('/categories', authMiddleware, categoryRoutes);
+
+router.useHTTP('/stats', authMiddleware, statsRoutes);
 
 //404 for all non-existing routes
 router.use((_, res) => {

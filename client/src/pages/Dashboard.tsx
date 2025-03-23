@@ -2,6 +2,12 @@ import { useEffect, useState } from 'react';
 import { InventoryItem } from '@/types/types';
 import api from '@/axiosInterceptor';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import LabStatsPerYear from '@/components/custom/LabStatsPerYear';
+import LabStatsPerCategory from '@/components/custom/LabStatsPerCategory';
+import VendorStatsPerYear from '@/components/custom/VendorStatsPerYear';
+import VendorDetailsDialog from '@/components/custom/VendorDetailsDialog';
+import VendorStatsCategories from '@/components/custom/VendorStatsCategories';
 
 // Utility function to check if a date is before another date
 const isBefore = (date: Date, comparisonDate: Date): boolean => {
@@ -39,6 +45,15 @@ const checkDateStatus = (date: string | Date | null | undefined, daysThreshold: 
 
 const Dashboard = () => {
     const [importantDates, setImportantDates] = useState<InventoryItem[]>([]);
+    const [selectedStat, setSelectedStat] = useState<string>("lab/yearly-sum");
+    const [statData, setStatData] = useState<any[]>([]);
+    const [vendorDetails, setVendorDetails] = useState(null);
+    const [isVendorDialogOpen, setVendorDialogOpen] = useState(false);
+
+    const handleVendorClick = (vendor: any) => {
+        setVendorDetails(vendor);
+        setVendorDialogOpen(true);
+    };
 
     useEffect(() => {
         // Fetch items with important dates
@@ -54,10 +69,47 @@ const Dashboard = () => {
         fetchImportantDates();
     }, []);
 
+    useEffect(() => {
+        if (!selectedStat) return;
+        setStatData([])
+
+        console.log(selectedStat)
+
+        // Fetch data for the selected statistic
+        const fetchStatData = async () => {
+            try {
+                const response = await api(selectedStat === 'vendors' ? `/${selectedStat}` : `/stats/${selectedStat}`);
+                setStatData(response.data);
+            } catch (error) {
+                console.error(`Error fetching data for ${selectedStat}:`, error);
+            }
+        };
+
+        fetchStatData();
+    }, [selectedStat]);
+
     return (
-        <div className='flex'>
+        <div className='inventory flex p-1'>
             <div className="w-3/4 p-4">
-                {/* ...existing dashboard content... */}
+                <div className="mb-4">
+                    <Select value={selectedStat} onValueChange={setSelectedStat}>
+                        <SelectTrigger className="w-[300px]">
+                            <SelectValue placeholder="Select a statistic" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="lab/yearly-sum">Lab Inventory Sum Per Year</SelectItem>
+                            <SelectItem value="lab/category-sum">Inventory Sum Per Category</SelectItem>
+                            <SelectItem value="vendor/yearly-sum">Vendor Sum Per Year</SelectItem>
+                            <SelectItem value="vendors">Vendor Categories</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                {selectedStat === "lab/yearly-sum" ? <LabStatsPerYear data={statData} /> : <></>}
+                {selectedStat === "lab/category-sum" ? <LabStatsPerCategory data={statData} /> : <></>}
+                {selectedStat === "vendor/yearly-sum" ? <VendorStatsPerYear data={statData} /> : <></>}
+                {selectedStat === "vendors" ? (
+                    <VendorStatsCategories data={statData} onVendorClick={handleVendorClick} />
+                ) : <></>}
             </div>
             <div className="w-1/4 h-[500px] rounded-md px-2 overflow-y-auto">
                 <h3 className="sticky top-0 left-0 p-1 bg-background text-lg text-center font-semibold mb-4">Upcoming Important Dates</h3>
@@ -92,6 +144,11 @@ const Dashboard = () => {
                     <p className="text-sm text-muted-foreground">No upcoming important dates.</p>
                 )}
             </div>
+            <VendorDetailsDialog
+                open={isVendorDialogOpen}
+                onClose={() => setVendorDialogOpen(false)}
+                vendorDetails={vendorDetails}
+            />
         </div>
     );
 };

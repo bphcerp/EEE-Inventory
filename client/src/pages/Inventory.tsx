@@ -10,13 +10,13 @@ import { Link, useNavigate } from "react-router";
 import { InventoryItem } from "@/types/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { TransferConfirmationDialog } from "@/components/custom/TransferConfirmationDialog";
+import VendorDetailsDialog from "@/components/custom/VendorDetailsDialog";
 
 export const Inventory = () => {
     const userPermissions = useUserPermissions();
     const [inventoryData, setInventoryData] = useState<InventoryItem[]>([]);
     const [loading, setLoading] = useState(true);
 
-    const [showAllLabs, setShowAllLabs] = useState(Boolean(userPermissions));
     const [vendorDetails, setVendorDetails] = useState<InventoryItem["vendor"] | null>(null);
     const [isVendorDialogOpen, setVendorDialogOpen] = useState(false);
     const [selectedItems, setSelectedItems] = useState<InventoryItem[]>([])
@@ -86,7 +86,7 @@ export const Inventory = () => {
 
     useEffect(() => {
         const timer = setTimeout(() => setLoading(true), 2000);
-        api(showAllLabs ? '/inventory?allLabs=true' : '/inventory')
+        api('/inventory')
             .then(({ data }) => setInventoryData(data))
             .catch(error => {
                 toast.error('Error fetching inventory data:')
@@ -96,7 +96,7 @@ export const Inventory = () => {
                 setLoading(false);
                 clearTimeout(timer);
             });
-    }, [showAllLabs, userPermissions]);
+    }, []);
 
     return (
         <div className="inventory p-2">
@@ -116,7 +116,7 @@ export const Inventory = () => {
                             Transfer
                         </Button>
                     ) : <></>}
-                    <Button onClick={() => navigate('/add-item')}>Add Item</Button>
+                    {userPermissions ? <Button onClick={() => navigate('/add-item')}>Add Item</Button> : <></>}
                 </>} />
             )}
             <TransferConfirmationDialog 
@@ -125,24 +125,11 @@ export const Inventory = () => {
                 selectedItems={selectedItems} 
                 onTransferSuccess={handleTransferSuccess} 
             />
-            <Dialog open={isVendorDialogOpen} onOpenChange={setVendorDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Vendor Details</DialogTitle>
-                    </DialogHeader>
-                    {vendorDetails ? (
-                        <div>
-                            <p><strong>Name:</strong> {vendorDetails.name}</p>
-                            <p><strong>Address:</strong> {vendorDetails.address}</p>
-                            <p><strong>POC Name:</strong> {vendorDetails.pocName}</p>
-                            <p><strong>Phone Number:</strong> {vendorDetails.phoneNumber}</p>
-                            <p><strong>Email:</strong> {vendorDetails.email}</p>
-                        </div>
-                    ) : (
-                        <p>No vendor details available.</p>
-                    )}
-                </DialogContent>
-            </Dialog>
+            <VendorDetailsDialog 
+                open={isVendorDialogOpen} 
+                onClose={() => setVendorDialogOpen(false)} 
+                vendorDetails={vendorDetails} 
+            />
         </div>
     );
-}
+};
