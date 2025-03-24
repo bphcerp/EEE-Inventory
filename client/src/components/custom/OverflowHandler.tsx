@@ -39,7 +39,7 @@ export default function OverflowHandler({ text }: { text: string }) {
                         <DialogHeader>
                             <DialogTitle>Full Content</DialogTitle>
                         </DialogHeader>
-                        <div>{text}</div>
+                        <p className="w-full overflow-auto break-words">{text}</p>
                     </DialogContent>
                 </Dialog>
             )}

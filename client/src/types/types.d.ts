@@ -6,13 +6,12 @@ export interface User {
     role: "Admin" | "Technician" | "Faculty";
 }
 
-export interface ValidSheet {
-    sheetName: string
-    index: number
-    rowOffset: number
-    columnOffset: number
-    dataOffset: number
-}
+export interface SheetInfo {
+    sheetName: string;
+    columnOffset: number;
+    dataOffset: number;
+    columnIndexMap: Record<string, number>;
+};
 
 export interface Laboratory {
     id: string;
@@ -25,6 +24,7 @@ export interface Laboratory {
 
 export interface Vendor {
     id: string;
+    vendorId: number; // Temporary ID for easier bulk-entry
     name: string;
     address?: string;
     pocName: string;

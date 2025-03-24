@@ -5,22 +5,21 @@ import useWebSocket, { resetGlobalState } from 'react-use-websocket'
 import { UploadStage } from "./UploadStage";
 import { toast } from "sonner";
 import api from "@/axiosInterceptor";
-import SelectLabStage from "./SelectLabStage";
-import { ValidSheet } from "@/types/types";
+import { Laboratory, SheetInfo } from "@/types/types";
 import ProcessingStage from "./ProcessingStage";
-import { Check } from "lucide-react";
+import { AlertCircle, Check, Info } from "lucide-react";
 
 const BulkAddFromExcel = () => {
   const [stage, setStage] = useState(1);
-  const totalStages = 4;
-  const labels = ['Upload', 'Select Labs', 'Processing Data', 'Finish'];
+  const totalStages = 3;
+  const labels = ['Upload', 'Processing Data', 'Finish'];
 
-  const [validSheets, setValidSheets] = useState<ValidSheet[]>([])
+  const [selectedLab, setSelectedLab] = useState<Laboratory | null>(null)
 
   const [accessToken, setAccessToken] = useState('')
 
   const socketUrl = `${import.meta.env.VITE_PUBLIC_API_URL.replace(/^http/, 'ws')}/api/inventory/excel`
-  const { sendJsonMessage, lastJsonMessage, sendMessage, getWebSocket } = useWebSocket(socketUrl, {
+  const { sendJsonMessage, lastJsonMessage, sendMessage } = useWebSocket(socketUrl, {
     queryParams: {
       access_token: accessToken
     }
@@ -28,24 +27,24 @@ const BulkAddFromExcel = () => {
 
   useEffect(() => {
     if (lastJsonMessage !== null) {
-      if ((lastJsonMessage as {error : string}).error){
+      if ((lastJsonMessage as { error: string }).error) {
         setStage(1)
-        if ((lastJsonMessage as {error : string}).error !== "No valid sheets found"){
-          const ws = getWebSocket()
-          if (ws) ws.close()
-        }
-        toast.error((lastJsonMessage as {error : string}).error)
+        setSelectedLab(null)
+        toast.error((lastJsonMessage as { error: string }).error)
         return
       }
-      if ((lastJsonMessage as {stage : number, validSheets: ValidSheet[]}).stage === 2) setValidSheets((lastJsonMessage as {stage : number, validSheets: ValidSheet[]}).validSheets)
-      handleNextStage((lastJsonMessage as {stage : number}).stage)
+      else if ((lastJsonMessage as { stage: number }).stage === 2) {
+        toast.success('Upload successful')
+        sendJsonMessage({ stage: 2, selectedLabId: selectedLab!.id, sheetInfo: (lastJsonMessage as { sheetInfo: SheetInfo }).sheetInfo })
+      }
+      handleNextStage((lastJsonMessage as { stage: number }).stage)
     }
   }, [lastJsonMessage])
 
   useEffect(() => {
     const fetchToken = async () => {
       try {
-        const {data} = await api(`/inventory/token`);
+        const { data } = await api(`/inventory/token`);
         setAccessToken(data.accessToken)
       } catch (error) {
         console.error('Error fetching token:', error);
@@ -63,19 +62,25 @@ const BulkAddFromExcel = () => {
   // Calculate progress fill (from stage 1 to stage 4)
   const progressPercent = ((stage - 1) / (totalStages - 1)) * 100;
 
-  const handleNextStage = (stageToGoTo : number) => {
+  const handleNextStage = (stageToGoTo: number) => {
     setStage(Math.min(stageToGoTo, totalStages));
   };
 
   return (
-    <div className="relative flex flex-col p-5">
-      <span className="flex justify-center items-center mt-2 mb-10 w-full text-3xl text-primary text-center">
-        Bulk Add Items from Excel
-      </span>
+    <div className="relative flex flex-col p-5 space-y-10">
+      <div className="grid grid-cols-3">
+        <div className="flex space-x-2 text-red-600">
+          <AlertCircle size={20} />
+          <span className="text-xs">Vendor Id and Category Code Columns must be present in the excel and match with entries in the Settings page.</span>
+        </div>
+        <span className="text-3xl text-primary text-center">
+          Bulk Add Items from Excel
+        </span>
 
-      <Link to="/add-item">
-        <Button className="absolute m-5 top-2 right-0">Add Single Item</Button>
-      </Link>
+        <Link className="flex justify-end" to="/add-item">
+          <Button>Add Single Item</Button>
+        </Link>
+      </div>
 
       <div className="flex flex-col space-y-14 px-5">
         {/* Progress bar container */}
@@ -112,21 +117,17 @@ const BulkAddFromExcel = () => {
           })}
         </div>
 
-        {stage === 1 ? <UploadStage onSubmit={async (file) => {
+        {stage === 1 ? <UploadStage onSubmit={async (file, selectedLab) => {
           // Stage 1 -> 2 Sending the file uploaded to the websocket for processing
+          setSelectedLab(selectedLab)
           toast.info("Uploading...")
           sendMessage(await file.arrayBuffer())
-        }} /> : stage === 2 ? <SelectLabStage sheets={validSheets} onSubmit={(selectedSheets) => {
-          sendJsonMessage({stage : 3, selectedSheets })
-        }}  /> : stage === 3 ?  <ProcessingStage /> : (
+        }} /> : stage === 2 ? <ProcessingStage /> : (
           <div className="flex flex-col items-center space-y-4">
             <Check className="w-16 h-16 text-green-500" />
             <span className="text-xl font-semibold text-center text-primary">
               Data has been successfully uploaded!
             </span>
-            <p className="text-sm text-gray-600 text-center">
-              Note: New users created will not have emails set. If you want to edit their access, please go to the settings page.
-            </p>
           </div>
         )}
       </div>

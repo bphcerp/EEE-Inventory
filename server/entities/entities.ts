@@ -69,6 +69,9 @@ export class Vendor {
     @PrimaryGeneratedColumn("uuid")
     id: string;
 
+    @Column({ type: "int" })
+    vendorId: number; // Temporary ID for easier bulk-entry
+
     @Column({ type: "text" })
     name: string;
 
@@ -125,7 +128,7 @@ export class InventoryItem {
     @Column("text")
     itemName: string; // Name of the item
 
-    @Column("text")
+    @Column("text", { nullable: true })
     specifications: string; // Specifications of the item
 
     @Column("int")
@@ -164,7 +167,7 @@ export class InventoryItem {
     @Column("date", { nullable: true })
     dateOfInstallation?: Date; // Date of installation (if applicable)
 
-    @ManyToOne(() => Vendor)
+    @ManyToOne(() => Vendor, { nullable : true})
     vendor: Vendor; // Vendor name
 
     @Column("date", { nullable: true })

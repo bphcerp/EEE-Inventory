@@ -555,13 +555,13 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, se
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
-                            {[5, 10, 20, 50, 100, table.getPrePaginationRowModel().rows.length].map(pageSize => (
+                            {[5, 10, 20, 50, 100].map(pageSize => (
                                 <DropdownMenuCheckboxItem
                                     key={pageSize}
                                     checked={table.getState().pagination.pageSize === pageSize}
                                     onCheckedChange={() => table.setPageSize(pageSize)}
                                 >
-                                    {pageSize === table.getPrePaginationRowModel().rows.length ? 'All' : pageSize}
+                                    {pageSize}
                                 </DropdownMenuCheckboxItem>
                             ))}
                         </DropdownMenuContent>

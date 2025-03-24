@@ -31,7 +31,7 @@ const AdminOnlyRoutes = () => {
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
-      <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
+      <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
         <UserPermissionsProvider>
           <Toaster expand richColors position='top-center' closeButton />
           <Routes>

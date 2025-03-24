@@ -35,6 +35,7 @@ const userColumns: ColumnDef<User>[] = [
 ];
 
 const vendorColumns: ColumnDef<Vendor>[] = [
+  { accessorKey: 'vendorId', header: 'Vendor ID', meta: { filterType: 'search' as TableFilterType } },
   { accessorKey: 'name', header: 'Name', meta: { filterType: 'search' as TableFilterType } },
   { accessorKey: 'address', header: 'Address' },
   { accessorKey: 'pocName', header: 'POC Name' },

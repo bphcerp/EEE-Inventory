@@ -4,8 +4,8 @@
  */
 
 import { Request, Response } from 'express';
-import { categoryRepository, itemRepository, labRepository, tokenRepository, userRepository } from '../repositories/repositories';
-import { In, IsNull, LessThanOrEqual } from 'typeorm';
+import { categoryRepository, itemRepository, labRepository, tokenRepository, userRepository, vendorRepository } from '../repositories/repositories';
+import { In, IsNull, LessThanOrEqual, QueryRunner } from 'typeorm';
 import fs from 'fs';
 import path from 'path';
 import { Category, InventoryItem, Laboratory, User } from '../entities/entities';
@@ -14,97 +14,56 @@ import * as XLSX from 'xlsx';
 
 import parser from 'any-date-parser';
 
-
-type validSheetType = {
-    sheetName: string
-    index: number
-    rowOffset: number
-    columnOffset: number
-    dataOffset: number
-}
-
-const getValidLabNames = (path: string) => {
-    // Read the workbook from the file path
-    const workbook = XLSX.readFile(path);
-    const validSheets: validSheetType[] = [];
-
-    // Iterate over each sheet in the workbook
-    workbook.SheetNames.forEach((sheetName, sheetIndex) => {
-
-        const sheet = workbook.Sheets[sheetName];
-        // Convert sheet to an array of arrays (each inner array is a row)
-        const data = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-
-        // Look for a row whose first cell equals "Item Category"
-        const headerRowIndex = data.findIndex(row => (row as any[]).includes("Item Category"));
-
-        if (headerRowIndex !== -1) {
-            const headerRow = data[headerRowIndex] as string[];
-            // Find the column index where "Sl. No." is located in the header row
-            const columnOffset = headerRow.findIndex(cell => cell === "Sl. No.");
-
-            // Only add the sheet if both "Item Category" and "Sl. No." were found
-            if (columnOffset !== -1) {
-                const dataOffset = data.findIndex(row => (row as any[])[columnOffset] === 1)
-
-                validSheets.push({
-                    sheetName,
-                    index: sheetIndex,
-                    rowOffset: headerRowIndex,
-                    columnOffset,
-                    dataOffset
-                });
-            }
-        }
-    });
-
-    return validSheets;
+type SheetInfo = {
+    sheetName: string;
+    columnOffset: number;
+    dataOffset: number;
+    columnIndexMap: Record<string, number>;
 };
 
-// Function to check if a lab exists, otherwise create a new one
-async function findOrCreateLab(labName: string): Promise<Laboratory> {
-    let existingLab = await labRepository.findOneBy({ name: labName }); // Assume this is a DB lookup function
-    if (!existingLab) {
-        existingLab = new Laboratory();
-        existingLab.name = labName;
-        existingLab = await labRepository.save(existingLab)
+const getIsValidLabSheet = (path: string): SheetInfo | null => {
+    const workbook = XLSX.readFile(path);
 
-        try {
-            existingLab = await labRepository.save(existingLab);
-        } catch (error) {
-            // If the error is due to a unique constraint violation, try finding the user again
-            if ((error as any).code === '23505') { // PostgreSQL unique violation error code
-                existingLab = await labRepository.findOneBy({ name: labName });
-                return existingLab!
-            }
-        }
+    // Ensure there's only one sheet
+    if (workbook.SheetNames.length !== 1) return null;
 
-    }
-    return existingLab;
-}
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
 
-// Function to check if a user exists, otherwise create a new one
-async function findOrCreateUser(userName: string, type: 'Faculty' | 'Technician'): Promise<User> {
-    let existingUser = await userRepository.findOneBy({ name: userName }); // Assume this is a DB lookup function
-    if (!existingUser) {
-        existingUser = new User();
-        existingUser.name = userName;
-        existingUser.permissions = 0
-        existingUser.role = type
+    // Convert sheet to an array of arrays
+    const data = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
-        try {
-            existingUser = await userRepository.save(existingUser);
-        } catch (error) {
-            // If the error is due to a unique constraint violation, try finding the user again
-            if ((error as any).code === '23505') { // PostgreSQL unique violation error code
-                existingUser = await userRepository.findOneBy({ name: userName });
-                return existingUser!
-            }
-        }
+    // Find the header row containing "Sl. No." (case-insensitive & trimmed)
+    const headerRowIndex = data.findIndex((row) =>
+        (row as any[]).some((cell) => typeof cell === "string" && cell.trim().toLowerCase() === "sl. no.")
+    );
+    if (headerRowIndex === -1) return null; // No valid headers found
 
-    }
-    return existingUser;
-}
+    const headerRow = (data[headerRowIndex] as string[]).map((header) =>
+        typeof header === "string" ? header.trim().toLowerCase() : ""
+    );
+
+    // Create a mapping of column headers to indices
+    const columnIndexMap: Record<string, number> = {};
+    headerRow.forEach((header, index) => {
+        if (header) columnIndexMap[header] = index;
+    });
+
+    // Get the column index for "sl. no."
+    const columnOffset = columnIndexMap["sl. no."];
+    if (columnOffset === undefined) return null;
+
+    // Find the dataOffset (first row where "Sl. No." is 1)
+    const dataOffset = data.findIndex((row) => (row as any[])[columnOffset] === 1);
+    if (dataOffset === -1) return null;
+
+    return {
+        sheetName,
+        columnOffset,
+        dataOffset,
+        columnIndexMap,
+    };
+};
 
 // Some dates have dots in them
 const parseDate = (date: string | Date) => {
@@ -112,81 +71,122 @@ const parseDate = (date: string | Date) => {
     return parsedDate.invalid ? null : parsedDate
 }
 
-async function mapToInventoryItem(data: any[]): Promise<any> {
-    return {
-        itemCategory: data[1],
-        itemName: data[2],
-        specifications: data[3],
-        quantity: data[4],
-        noOfLicenses: data[5] !== "NA" ? Number(data[5]) : undefined,
-        natureOfLicense: data[6] !== "NA" ? data[6] : undefined,
-        yearOfLease: data[7] !== "NA" ? Number(data[7]) : undefined,
-        poAmount: data[8] ? typeof data[8] === 'string' ? parseFloat(data[8].replace(/,/g, "")) : data[8] : 0, // Convert to number, removing commas
-        poNumber: data[10],
-        poDate: parseDate(data[12]),
-        lab: await findOrCreateLab(data[14]),
-        labInchargeAtPurchase: data[15],
-        labTechnicianAtPurchase: data[16],
-        equipmentID: data[17] || "Not Provided", // Use empty string if null
-        fundingSource: data[18],
-        dateOfInstallation: parseDate(data[19]),
-        vendorName: data[20] ?? "Not Provided",
-        vendorAddress: data[21] ?? "Not Provided",
-        vendorPOCName: data[22] ?? "Not Provided",
-        vendorPOCPhoneNumber: data[23]?.toString() ?? "Not Provided",
-        vendorPOCEmailID: data[24] ?? "Not Provided",
-        warrantyFrom: parseDate(data[25]),
-        warrantyTo: parseDate(data[26]),
-        amcFrom: parseDate(data[27]),
-        amcTo: parseDate(data[28]),
-        currentLocation: data[29],
-        softcopyOfPO: data[30] !== "NA" ? data[30] : undefined,
-        softcopyOfInvoice: data[31] !== "NA" ? data[31] : undefined,
-        softcopyOfNFA: data[32] !== "NA" ? data[32] : undefined,
-        softcopyOfAMC: data[33] !== "NA" ? data[33] : undefined,
-        status: (data[34] ? (data[34] as string).toLowerCase() === "working" ? "Working" : "Not Working" : null) as "Working" | "Not Working" | null,
-        equipmentPhoto: data[35] !== "NA" ? data[35] : undefined,
-        remarks: data[36] || undefined
+async function mapToInventoryItemAndSave(data: any[], selectedLab: Laboratory, columnIndexMap: Record<string, number>, queryRunner: QueryRunner): Promise<any> {
+
+    const vendor = (await vendorRepository.findOneBy({ vendorId: data[columnIndexMap['vendor id']] })) ?? undefined
+    const itemCategory = await categoryRepository.findOneBy({ code: data[columnIndexMap['category code']] })
+
+    if (!itemCategory) throw Error(`Item category with code ${data[columnIndexMap['category code']]} invalid`)
+
+    const lastItemNumber = ((await queryRunner.manager.query(`
+        SELECT COALESCE(MAX("serialNumber")::int, 0) AS count 
+        FROM inventory_item 
+        WHERE "labId" = $1` , [selectedLab.id]))[0].count) + 1;
+
+
+    console.log(lastItemNumber)
+
+    const baseItem: Partial<InventoryItem> = {
+        itemCategory,
+        serialNumber: lastItemNumber,
+        itemName: data[columnIndexMap["item name"]],
+        specifications: data[columnIndexMap["specification(s)"]],
+        quantity: Number(data[columnIndexMap["quantity"]]),
+        noOfLicenses: Number(data[columnIndexMap["no of licenses"]]) ? Number(data[columnIndexMap["no of licenses"]]):  undefined,
+        natureOfLicense: data[columnIndexMap["nature of license"]] !== "NA" ? data[columnIndexMap["nature of license"]] : undefined,
+        yearOfLease: Number(data[columnIndexMap["year of lease"]]) ? Number(data[columnIndexMap["year of lease"]]) :  undefined,
+        poAmount: data[columnIndexMap["item amount in po (inr)"]]
+            ? typeof data[columnIndexMap["item amount in po (inr)"]] === "string"
+                ? parseFloat(data[columnIndexMap["item amount in po (inr)"]].replace(/,/g, ""))
+                : data[columnIndexMap["item amount in po (inr)"]]
+            : 0, // Convert to number, removing commas
+        poNumber: data[columnIndexMap["po number"]],
+        poDate: parseDate(data[columnIndexMap["po date"]])!,
+        lab: selectedLab,
+        labInchargeAtPurchase: data[columnIndexMap["lab incharge at the time of purchase"]],
+        labTechnicianAtPurchase: data[columnIndexMap["lab technician at the time of purchase"]],
+        fundingSource: data[columnIndexMap["funding source"]],
+        dateOfInstallation: parseDate(data[columnIndexMap["date of installation"]]) ?? undefined,
+        vendor,
+        warrantyFrom: parseDate(data[columnIndexMap["warranty deatils"]]) ?? undefined,
+        warrantyTo: parseDate(data[columnIndexMap["warranty deatils"]]) ?? undefined, // Assuming "to" is in the same column
+        amcFrom: parseDate(data[columnIndexMap["amc details"]]) ?? undefined,
+        amcTo: parseDate(data[columnIndexMap["amc details"]]) ?? undefined, // Assuming "to" is in the same column
+        currentLocation: data[columnIndexMap["current location of the item"]],
+        softcopyOfPO: data[columnIndexMap["softcopy of po"]] !== "NA" ? data[columnIndexMap["softcopy of po"]] : undefined,
+        softcopyOfInvoice: data[columnIndexMap["softcopy of invoice"]] !== "NA" ? data[columnIndexMap["softcopy of invoice"]] : undefined,
+        softcopyOfNFA: data[columnIndexMap["softcopy of nfa"]] !== "NA" ? data[columnIndexMap["softcopy of nfa"]] : undefined,
+        softcopyOfAMC: data[columnIndexMap["softcopy of amc"]] !== "NA" ? data[columnIndexMap["softcopy of amc"]] : undefined,
+        status: data[columnIndexMap["status"]] === "working" ? "Working" : null,
+        equipmentPhoto: data[columnIndexMap["equipment photo (for cost above 10 lakhs)"]] !== "NA"
+            ? data[columnIndexMap["equipment photo (for cost above 10 lakhs)"]]
+            : undefined,
+        remarks: data[columnIndexMap["remarks"]] || undefined,
     };
+
+    if (baseItem.quantity === 1) {
+        baseItem.equipmentID = `BITS/EEE/${selectedLab.code}/${itemCategory.code}/${lastItemNumber}`
+        const newItem = queryRunner.manager.create(InventoryItem, baseItem)
+        await queryRunner.manager.save(newItem)
+    }
+    else {
+        const baseEquipmentID = `BITS/EEE/${selectedLab.code}/${itemCategory.code}/${lastItemNumber}`;
+        const items = Array.from({ length: baseItem.quantity! }, (_, i) => ({
+            ...baseItem,
+            equipmentID: `${baseEquipmentID}-${i + 1}`,
+        }));
+        await queryRunner.manager.save(queryRunner.manager.create(InventoryItem, items));
+    }
 }
 
-const getAndSaveDataFromSheets = (path: string, sheetsMeta: validSheetType[]) => {
+const getAndSaveDataFromSheet = async (path: string, sheetInfo: SheetInfo, selectedLabId: string) => {
     // Read workbook with dates preserved
+
     const workbook = XLSX.readFile(path, { cellDates: true });
 
-    return sheetsMeta.map(async (meta) => {
-        const { sheetName, rowOffset, columnOffset, dataOffset } = meta;
-        const sheet = workbook.Sheets[sheetName];
-        if (!sheet) {
-            console.warn(`Sheet ${sheetName} not found.`);
-            return { ...meta, data: [] };
+    const { sheetName, columnOffset, dataOffset } = sheetInfo;
+    const sheet = workbook.Sheets[sheetName];
+    if (!sheet) throw Error(`Sheet ${sheetName} not found.`)
+
+    // Get sheet data as an array of arrays
+    const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null });
+
+    // Process filtered data:
+    // - Slice rows starting at dataOffset (where the actual data begins)
+    // - Filter out all of the rows for which Item Name is not set (they're empty rows. Item Name is mandatory)
+    // - For each row, slice columns starting at columnOffset
+    // - For each cell, if a hyperlink exists (in sheet[cellRef].l.Target),
+    //   replace the cell value with the hyperlink URL.
+    const filteredData = jsonData.slice(dataOffset).filter((row) => (row as any[])[columnOffset + 2] !== null).map((row, rowIndex) =>
+        (row as any[]).slice(columnOffset).map((cell, colIndex) => {
+            // Compute Excel cell reference from dataOffset and columnOffset
+            const cellRef = XLSX.utils.encode_cell({ r: dataOffset + rowIndex, c: columnOffset + colIndex });
+            if (sheet[cellRef] && sheet[cellRef].l && sheet[cellRef].l.Target) {
+                return sheet[cellRef].l.Target;
+            }
+            return cell;
+        })
+    );
+
+    // Parse and Save Data
+
+    const selectedLab = (await labRepository.findOneBy({ id: selectedLabId }))!;
+    const queryRunner = itemRepository.manager.connection.createQueryRunner();
+    await queryRunner.startTransaction();
+
+    try {
+        for (const item of filteredData) {
+            if (!item[sheetInfo.columnIndexMap['item name']]) continue; // Skip empty rows
+            await mapToInventoryItemAndSave(item, selectedLab, sheetInfo.columnIndexMap, queryRunner);
         }
-
-        // Get sheet data as an array of arrays
-        const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null });
-
-        // Process filtered data:
-        // - Slice rows starting at dataOffset (where the actual data begins)
-        // - Filter out all of the rows for which Item Name is not set (they're empty rows. Item Name is mandatory)
-        // - For each row, slice columns starting at columnOffset
-        // - For each cell, if a hyperlink exists (in sheet[cellRef].l.Target),
-        //   replace the cell value with the hyperlink URL.
-        const filteredData = jsonData.slice(dataOffset).filter((row) => (row as any[])[columnOffset + 2] !== null).map((row, rowIndex) =>
-            (row as any[]).slice(columnOffset).map((cell, colIndex) => {
-                // Compute Excel cell reference from dataOffset and columnOffset
-                const cellRef = XLSX.utils.encode_cell({ r: dataOffset + rowIndex, c: columnOffset + colIndex });
-                if (sheet[cellRef] && sheet[cellRef].l && sheet[cellRef].l.Target) {
-                    return sheet[cellRef].l.Target;
-                }
-                return cell;
-            })
-        );
-
-        // Parse and Save Data
-
-        return await Promise.all(filteredData.map(mapToInventoryItem))
-
-    });
+        await queryRunner.commitTransaction();
+    } catch (error) {
+        await queryRunner.rollbackTransaction();
+        console.error("Error saving data from sheet:", error);
+        throw error;
+    } finally {
+        await queryRunner.release();
+    }
 };
 
 
@@ -255,30 +255,24 @@ export const addBulkData = async (req: Request, res: WSResponse) => {
 
                     fs.writeFileSync(savePath, msg)
 
-                    const validSheets: validSheetType[] = getValidLabNames(savePath)
+                    const sheetInfo = getIsValidLabSheet(savePath)
 
-                    if (validSheets.length == 0) throw Error("No valid sheets found")
+                    if (!sheetInfo) throw Error("An invalid sheet was uploaded. Please check again!")
+                    else if (!sheetInfo.columnIndexMap['vendor id']) throw Error("Vendor Id column not found. Please check again!")
+                    else if (!sheetInfo.columnIndexMap['category code']) throw Error("Category Code column not found. Please check again!")
 
                     console.log(`------------ File Saved at temp/temp-${token.id}.xlsx ----------------`)
 
-                    // If it's one go straight to stage 3
-                    if (validSheets.length > 1) {
-                        ws.send(JSON.stringify({ stage: 2, validSheets }))
-                        return
-                    }
-                    else ws.send(JSON.stringify({ stage: 3 }))
+                    ws.send(JSON.stringify({ stage: 2, sheetInfo }))
                 }
-                // Stage - 3 Response Selected Labs
+                else if (JSON.parse(msg).stage === 2) {
+                    // Stage - 2 Extract Data
+                    const { sheetInfo, selectedLabId } = JSON.parse(msg)
 
-                const msgJSON = JSON.parse(msg)
-                ws.send(JSON.stringify({ stage: 3 }))
-                const allItemsToBeAdded = await Promise.all(getAndSaveDataFromSheets(savePath, msgJSON.selectedSheets))
-                const allItemsToBeAddedFlattened = allItemsToBeAdded.flat()
+                    await getAndSaveDataFromSheet(savePath, sheetInfo, selectedLabId)
 
-                const inventoryItems = itemRepository.create(allItemsToBeAddedFlattened)
-                await itemRepository.insert(inventoryItems)
-
-                ws.send(JSON.stringify({ stage: 4 }))
+                    ws.send(JSON.stringify({ stage: 3 }))
+                }
 
             } catch (e) {
                 console.error({ error: (e as Error).message ?? "Something went wrong" });
@@ -314,16 +308,15 @@ export const addInventoryItem = async (req: Request, res: Response) => {
             amcTo: req.body.amcTo ? new Date(req.body.amcTo) : null
         };
 
-        const lab = await labRepository.findOneBy({ id : req.body.labId })
-        const category = await categoryRepository.findOneBy({id: req.body.itemCategory})
+        const lab = await labRepository.findOneBy({ id: req.body.labId })
+        const category = await categoryRepository.findOneBy({ id: req.body.itemCategory })
         const lastItemNumber = (await itemRepository.query(`
-            SELECT MAX("serialNumber")::int AS count 
+            SELECT COALESCE(MAX("serialNumber")::int, 0) AS count 
             FROM inventory_item 
-            WHERE "labId" = $1
-        `, [req.body.labId]))[0].count + 1
+            WHERE "labId" = $1`, [req.body.labId]))[0].count + 1
 
         let result: InventoryItem | InventoryItem[];
-        if (req.body.quantity == 1){
+        if (req.body.quantity == 1) {
             const equipmentID = `BITS/EEE/${lab!.code}/${category!.code}/${lastItemNumber}`
             const newItem = itemRepository.create(formData as Object);
             newItem.lab = req.body.labId ? { id: req.body.labId } as any : undefined
@@ -357,10 +350,9 @@ export const getLastItemNumber = async (req: Request, res: Response) => {
 
     try {
         const lastItemNumber = (await itemRepository.query(`
-            SELECT MAX("serialNumber")::int AS count 
+            SELECT COALESCE(MAX("serialNumber")::int, 0) AS count 
             FROM inventory_item 
-            WHERE "labId" = $1
-        `, [req.params.labId]))[0].count + 1
+            WHERE "labId" = $1`, [req.params.labId]))[0].count + 1
         res.status(200).json({ lastItemNumber });
     } catch (error) {
         res.status(500).json({ message: 'Error fetching inventory items', error });
@@ -374,7 +366,7 @@ export const getInventory = async (req: Request, res: Response) => {
 
     try {
         const items = await itemRepository.find({
-            where: { transfer: IsNull()},
+            where: { transfer: IsNull() },
             relations: ['lab', 'vendor', 'itemCategory']
         });
 
@@ -402,17 +394,16 @@ export const transferItems = async (req: Request, res: Response) => {
             return
         }
 
-        const itemsToTransfer = await itemRepository.find({ where : { id : In(itemIds), transfer: IsNull() }, relations: ['lab', 'itemCategory', 'vendor']});
+        const itemsToTransfer = await itemRepository.find({ where: { id: In(itemIds), transfer: IsNull() }, relations: ['lab', 'itemCategory', 'vendor'] });
         if (itemsToTransfer.length !== itemIds.length) {
             res.status(404).json({ message: "Some items not found" });
             return
         }
 
         const lastItemNumber = (await itemRepository.query(`
-            SELECT MAX("serialNumber")::int AS count 
+            SELECT COALESCE(MAX("serialNumber")::int, 0) AS count 
             FROM inventory_item 
-            WHERE "labId" = $1
-        `, [destLabId]))[0].count + 1;
+            WHERE "labId" = $1`, [destLabId]))[0].count + 1;
 
         const newItems = itemsToTransfer.map((item, index) => {
             const newEquipmentID = item.equipmentID.includes('-')
