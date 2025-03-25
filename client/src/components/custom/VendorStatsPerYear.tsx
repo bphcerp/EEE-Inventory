@@ -1,88 +1,93 @@
 import { FunctionComponent, useEffect, useState } from 'react';
 import { DataTable } from '@/components/custom/DataTable';
 import api from '@/axiosInterceptor';
-import { ColumnDef, Row } from '@tanstack/react-table';
+import { ColumnDef } from '@tanstack/react-table';
 import { Vendor } from '@/types/types';
 
-interface VendorStatsPerYear {
-    vendorId: string;
-    year: number;
+export interface StatData {
     totalQuantity: number;
     totalPrice: number;
 }
 
+interface VendorStatsPerYear {
+    vendor: Vendor;
+    [year: number]: StatData | undefined; // Year as a key with structured data
+}
+
 interface VendorStatsPerYearProps {
-    data: Array<VendorStatsPerYear>;
+    data: Array<{ vendorId: string; year: number; totalQuantity: number; totalPrice: number }>;
 }
 
 const VendorStatsPerYear: FunctionComponent<VendorStatsPerYearProps> = ({ data }) => {
     const [vendors, setVendors] = useState<Vendor[]>([]);
     const currentYear = new Date().getFullYear();
     const years = Array.from({ length: currentYear - 2008 + 1 }, (_, i) => currentYear - i);
-    const [vendorIdMap, setVendorIdMap] = useState<{ [key: string]: Vendor }>({});
     const [tableData, setTableData] = useState<VendorStatsPerYear[]>([]);
 
     useEffect(() => {
-        const fetchVendors = async () => {
-            try {
-                const response = await api('/vendors');
-                setVendors(response.data);
-                (response.data as Vendor[]).map(vendor => {
-                    setVendorIdMap((prev) => ({ ...prev, [vendor.id]: vendor }));
-                });
+        if (data.length) {
+            const fetchVendors = async () => {
+                try {
+                    const response = await api('/vendors');
+                    setVendors(response.data);
 
-                // Add remaining vendorIds to tableData
-                const updatedTableData = data;
-                response.data.forEach((vendor: Vendor) => {
-                    if (!updatedTableData.some(item => item.vendorId === vendor.id)) {
-                        updatedTableData.push({
-                            vendorId: vendor.id,
-                            year: 0, // Default year for missing data
-                            totalQuantity: 0,
-                            totalPrice: 0
-                        });
-                    }
-                });
-                setTableData(updatedTableData);
-            } catch (error) {
-                console.error('Error fetching vendors:', error);
-            }
-        };
+                    // Transform data: Group by `vendorId`
+                    const vendorMap: { [key: string]: VendorStatsPerYear } = {};
 
-        fetchVendors();
+                    response.data.forEach((vendor: Vendor) => vendorMap[vendor.id] = { vendor });
+
+                    data.forEach(({ vendorId, year, totalQuantity, totalPrice }) => {
+                        vendorMap[vendorId][year] = { totalQuantity: Number(totalQuantity), totalPrice: Number(totalPrice) };
+                    });
+
+                    setTableData(Object.values(vendorMap));
+                } catch (error) {
+                    console.error('Error fetching vendors:', error);
+                }
+            };
+
+            fetchVendors();
+        }
     }, [data]);
 
     const columns: ColumnDef<VendorStatsPerYear>[] = [
-        { accessorFn: (row) => vendorIdMap[row.vendorId]?.name || 'Unknown Vendor', header: 'Vendor Name' },
-        ...(years.map((year) => ({
+        {
+            accessorKey: 'vendor.name',
+            header: 'Vendor Name',
+        },
+        ...(years.map(year => ({
             accessorKey: year.toString(),
             header: year.toString(),
-            cell: ({ row }: { row: Row<VendorStatsPerYear> }) => {
-                return row.original.year === year ? `${row.original.totalQuantity} (${Number(row.original.totalPrice).toLocaleString('en-IN', {
-                    style: 'currency',
-                    currency: 'INR'
-                })})` : '-';
-            },
-            meta: {
-                calculateSum: (rows: VendorStatsPerYear[]) => {
-                    const totalQuantitySum = rows.filter(row => row.year === year).reduce((sum, row) => sum + Number(row.totalQuantity), 0);
-                    const totalPriceSum = rows.filter(row => row.year === year).reduce((sum, row) => sum + Number(row.totalPrice), 0);
-                    return `${totalQuantitySum} (${totalPriceSum.toLocaleString('en-IN', {
+            cell: ({ row }) => {
+                const yearData = row.original[year];
+                if (yearData) {
+                    return `${yearData.totalQuantity} (${yearData.totalPrice.toLocaleString('en-IN', {
                         style: 'currency',
                         currency: 'INR'
                     })})`;
                 }
+                return '-';
+            },
+            meta: {
+                calculateSum: (rows: VendorStatsPerYear[]) => {
+                    const totalQuantitySum = rows.reduce((sum, row) => sum + (row[year]?.totalQuantity || 0), 0);
+                    const totalPriceSum = rows.reduce((sum, row) => sum + (row[year]?.totalPrice || 0), 0);
+                    return `${totalQuantitySum} (${totalPriceSum.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })})`;
+                }
             }
-        })) as ColumnDef<VendorStatsPerYear>[]),
+        })) as ColumnDef<VendorStatsPerYear>[])
     ];
 
-    return (
-        (vendors.length ? <DataTable data={tableData} columns={columns} mainSearchColumn={'Vendor Name' as unknown as keyof VendorStatsPerYear} initialState={{
-            columnPinning: {
-                left: ['vendorName']
-            }
-        }} /> : <></>)
-    );
+    return vendors.length ? (
+        <DataTable
+            data={tableData}
+            columns={columns}
+            mainSearchColumn={'vendor_name' as keyof VendorStatsPerYear}
+            initialState={{
+                columnPinning: { left: ['vendor_name'] }
+            }}
+        />
+    ) : null;
 };
 
 export default VendorStatsPerYear;

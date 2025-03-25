@@ -516,11 +516,11 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, se
                             {table.getVisibleLeafColumns().map((column) => (
                                 <TableCell
                                     key={column.id}
-                                    className="font-bold text-center"
+                                    className={`${column.getIsPinned() ? 'sticky left-0 bg-background' : ''} font-bold text-center`}
                                 >
                                     {column.columnDef.meta?.calculateSum
                                         ? column.columnDef.meta.calculateSum(table.getRowModel().rows.map(row => row.original))
-                                        : null}
+                                        : <></>}
                                 </TableCell>
                             ))}
                         </TableRow> : <></>

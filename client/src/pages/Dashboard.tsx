@@ -8,6 +8,7 @@ import LabStatsPerCategory from '@/components/custom/LabStatsPerCategory';
 import VendorStatsPerYear from '@/components/custom/VendorStatsPerYear';
 import VendorDetailsDialog from '@/components/custom/VendorDetailsDialog';
 import VendorStatsCategories from '@/components/custom/VendorStatsCategories';
+import hdate from 'human-date'
 
 // Utility function to check if a date is before another date
 const isBefore = (date: Date, comparisonDate: Date): boolean => {
@@ -21,17 +22,6 @@ const addDays = (date: Date, days: number): Date => {
     return result;
 };
 
-// Utility function to format the days diff to now
-const formatDaysToNow = (date: Date): string => {
-    const now = new Date();
-    const diffInDays = date.getDate() - now.getDate()
-
-    if (diffInDays === 0) return 'Today';
-    if (diffInDays === 1) return 'Tomorrow';
-    if (diffInDays > 1) return `in ${diffInDays} days`;
-    if (diffInDays === -1) return 'Yesterday';
-    return `${Math.abs(diffInDays)} days ago`;
-};
 
 // Utility function to check if a date is expiring soon or already expired
 const checkDateStatus = (date: string | Date | null | undefined, daysThreshold: number) => {
@@ -60,7 +50,14 @@ const Dashboard = () => {
         const fetchImportantDates = async () => {
             try {
                 const response = await api('/inventory/important-dates');
-                setImportantDates(response.data);
+                const sortedData = response.data.sort((a: InventoryItem, b: InventoryItem) => {
+                    const warrantyA = new Date(a.warrantyTo || 0).getTime();
+                    const warrantyB = new Date(b.warrantyTo || 0).getTime();
+                    const amcA = new Date(a.amcTo || 0).getTime();
+                    const amcB = new Date(b.amcTo || 0).getTime();
+                    return Math.max(warrantyB, amcB) - Math.max(warrantyA, amcA);
+                });
+                setImportantDates(sortedData);
             } catch (error) {
                 console.error('Error fetching important dates:', error);
             }
@@ -71,10 +68,6 @@ const Dashboard = () => {
 
     useEffect(() => {
         if (!selectedStat) return;
-        setStatData([])
-
-        console.log(selectedStat)
-
         // Fetch data for the selected statistic
         const fetchStatData = async () => {
             try {
@@ -92,13 +85,16 @@ const Dashboard = () => {
         <div className='inventory flex p-1'>
             <div className="w-3/4 p-4">
                 <div className="mb-4">
-                    <Select value={selectedStat} onValueChange={setSelectedStat}>
+                    <Select value={selectedStat} onValueChange={(value) => {
+                        setStatData([])
+                        setSelectedStat(value)
+                    }}>
                         <SelectTrigger className="w-[300px]">
                             <SelectValue placeholder="Select a statistic" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="lab/yearly-sum">Lab Inventory Sum Per Year</SelectItem>
-                            <SelectItem value="lab/category-sum">Inventory Sum Per Category</SelectItem>
+                            <SelectItem value="lab/yearly-sum">Lab Sum Per Year</SelectItem>
+                            <SelectItem value="lab/category-sum">Lab Sum Per Category</SelectItem>
                             <SelectItem value="vendor/yearly-sum">Vendor Sum Per Year</SelectItem>
                             <SelectItem value="vendors">Vendor Categories</SelectItem>
                         </SelectContent>
@@ -129,10 +125,10 @@ const Dashboard = () => {
                                             <p className="text-xs text-muted-foreground"><strong>Equipment ID:</strong> {item.equipmentID}</p>
                                             <p className="text-xs text-muted-foreground"><strong>Lab:</strong> {item.lab?.name}</p>
                                             <p className={`${warrantyExpired ? 'text-red-500 line-through' : warrantyExpiring ? 'text-yellow-500 font-semibold' : 'text-xs text-muted-foreground'}`}>
-                                                <strong>Warranty To:</strong> {item.warrantyTo ? `${new Date(item.warrantyTo).toLocaleDateString()} (${formatDaysToNow(new Date(item.warrantyTo))})` : 'N/A'}
+                                                <strong>Warranty To:</strong> {item.warrantyTo ? `${new Date(item.warrantyTo).toLocaleDateString()} (${hdate.relativeTime(new Date(item.warrantyTo))})` : 'N/A'}
                                             </p>
                                             <p className={`${amcExpired ? 'text-red-500 line-through' : amcExpiring ? 'text-yellow-500 font-semibold' : 'text-xs text-muted-foreground'}`}>
-                                                <strong>AMC To:</strong> {item.amcTo ? `${new Date(item.amcTo).toLocaleDateString()} (${formatDaysToNow(new Date(item.amcTo))})` : 'N/A'}
+                                                <strong>AMC To:</strong> {item.amcTo ? `${new Date(item.amcTo).toLocaleDateString()} (${hdate.relativeTime(new Date(item.amcTo))})` : 'N/A'}
                                             </p>
                                         </CardContent>
                                     </Card>

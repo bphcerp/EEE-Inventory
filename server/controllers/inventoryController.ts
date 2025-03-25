@@ -66,8 +66,14 @@ const getIsValidLabSheet = (path: string): SheetInfo | null => {
 };
 
 // Some dates have dots in them
-const parseDate = (date: string | Date) => {
-    const parsedDate = parser.fromAny(date)
+const parseDate = (date: any | Date) => {
+    if (!date) return undefined
+
+    if (date instanceof Date) return date
+    if (!isNaN(new Date(date.toString()).getTime())) return new Date(date.toString())
+    
+    // For those edge cases where there are dots or slashes instead of dashes
+    const parsedDate = parser.fromAny(date.toString())
     return parsedDate.invalid ? null : parsedDate
 }
 
@@ -84,8 +90,6 @@ async function mapToInventoryItemAndSave(data: any[], selectedLab: Laboratory, c
         WHERE "labId" = $1` , [selectedLab.id]))[0].count) + 1;
 
 
-    console.log(lastItemNumber)
-
     const baseItem: Partial<InventoryItem> = {
         itemCategory,
         serialNumber: lastItemNumber,
@@ -95,7 +99,7 @@ async function mapToInventoryItemAndSave(data: any[], selectedLab: Laboratory, c
         noOfLicenses: Number(data[columnIndexMap["no of licenses"]]) ? Number(data[columnIndexMap["no of licenses"]]):  undefined,
         natureOfLicense: data[columnIndexMap["nature of license"]] !== "NA" ? data[columnIndexMap["nature of license"]] : undefined,
         yearOfLease: Number(data[columnIndexMap["year of lease"]]) ? Number(data[columnIndexMap["year of lease"]]) :  undefined,
-        poAmount: data[columnIndexMap["item amount in po (inr)"]]
+        poAmount: !isNaN(Number(data[columnIndexMap["item amount in po (inr)"]]))
             ? typeof data[columnIndexMap["item amount in po (inr)"]] === "string"
                 ? parseFloat(data[columnIndexMap["item amount in po (inr)"]].replace(/,/g, ""))
                 : data[columnIndexMap["item amount in po (inr)"]]
@@ -108,10 +112,10 @@ async function mapToInventoryItemAndSave(data: any[], selectedLab: Laboratory, c
         fundingSource: data[columnIndexMap["funding source"]],
         dateOfInstallation: parseDate(data[columnIndexMap["date of installation"]]) ?? undefined,
         vendor,
-        warrantyFrom: parseDate(data[columnIndexMap["warranty deatils"]]) ?? undefined,
-        warrantyTo: parseDate(data[columnIndexMap["warranty deatils"]]) ?? undefined, // Assuming "to" is in the same column
+        warrantyFrom: parseDate(data[columnIndexMap["warranty details"]]) ?? undefined,
+        warrantyTo: parseDate(data[columnIndexMap["warranty details"] + 1]) ?? undefined, // Assuming "to" is the next column (Warranty Details is a merged column)
         amcFrom: parseDate(data[columnIndexMap["amc details"]]) ?? undefined,
-        amcTo: parseDate(data[columnIndexMap["amc details"]]) ?? undefined, // Assuming "to" is in the same column
+        amcTo: parseDate(data[columnIndexMap["amc details"] + 1]) ?? undefined, // Assuming "to" is the next column (AMC Details is a merged column)
         currentLocation: data[columnIndexMap["current location of the item"]],
         softcopyOfPO: data[columnIndexMap["softcopy of po"]] !== "NA" ? data[columnIndexMap["softcopy of po"]] : undefined,
         softcopyOfInvoice: data[columnIndexMap["softcopy of invoice"]] !== "NA" ? data[columnIndexMap["softcopy of invoice"]] : undefined,
@@ -438,17 +442,18 @@ export const getImportantDates = async (req: Request, res: Response) => {
         const nextWeek = new Date();
         nextWeek.setDate(today.getDate() + 7);
 
-        const items = await itemRepository.find({
-            where: [
-                { warrantyTo: LessThanOrEqual(nextWeek) },
-                { amcTo: LessThanOrEqual(nextWeek) }
-            ],
-            relations: ['lab']
-        });
+        const items = await itemRepository
+            .createQueryBuilder("inventory_item")
+            .distinctOn(['inventory_item.serialNumber', 'inventory_item.labId'])
+            .leftJoinAndSelect("inventory_item.lab", "lab")
+            .where("(inventory_item.warrantyTo IS NOT NULL AND inventory_item.warrantyTo <= :nextWeek)")
+            .orWhere("(inventory_item.amcTo IS NOT NULL AND inventory_item.amcTo <= :nextWeek)")
+            .setParameters({ nextWeek })
+            .getMany()
 
         res.status(200).json(items);
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching important dates', error });
-        console.error(error);
+        console.error("Error fetching important dates:", error);
+        res.status(500).json({ message: "Error fetching important dates", error });
     }
 };

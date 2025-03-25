@@ -48,7 +48,6 @@ export const Inventory = () => {
         { accessorKey: 'labTechnicianAtPurchase', header: 'Lab Technician at Purchase' },
 
         // Unpinned columns
-        { accessorFn: (row) => row.quantity.toString() , header: 'Quantity', meta: { filterType: 'number-range' as TableFilterType } },
         { accessorFn: (row) => Number(row.poAmount) , header: 'PO Amount', cell: ({ getValue }) => (getValue() as number).toLocaleString('en-IN', { style: "currency", currency: "INR" }), meta: { filterType: 'number-range' as TableFilterType } },
         { accessorKey: 'poDate', header: 'PO Date', meta: { filterType: 'date-range' as TableFilterType } },
         { accessorKey: 'currentLocation', header: 'Current Location', meta: { filterType: 'dropdown' as TableFilterType } },

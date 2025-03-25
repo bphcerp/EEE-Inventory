@@ -19,7 +19,7 @@ export const getLabInventorySumPerYear = async (req: Request, res: Response) => 
                 SUM("subquery"."quantity") AS "totalQuantity",
                 SUM("subquery"."poAmount") AS "totalPrice"
             FROM 
-                (SELECT DISTINCT ON (inventory_item."serialNumber") 
+                (SELECT DISTINCT ON (inventory_item."labId", inventory_item."serialNumber") 
                     inventory_item."serialNumber",  -- Ensure each serial number is counted only once
                     inventory_item."labId",
                     DATE_PART('year', inventory_item."poDate") AS year,
@@ -50,7 +50,7 @@ export const getInventorySumPerCategory = async (req: Request, res: Response) =>
                 SUM("subquery"."quantity") AS "totalQuantity",
                 SUM("subquery"."poAmount") AS "totalPrice"
             FROM 
-                (SELECT DISTINCT ON (inventory_item."serialNumber")
+                (SELECT DISTINCT ON (inventory_item."labId", inventory_item."serialNumber")
                     inventory_item."serialNumber",  -- Ensure each serial number is counted only once
                     inventory_item."labId",
                     inventory_item."itemCategoryId" AS "categoryId",
@@ -81,7 +81,7 @@ export const getVendorSumPerYear = async (req: Request, res: Response) => {
                 SUM("subquery"."quantity") AS "totalQuantity",
                 SUM("subquery"."poAmount") AS "totalPrice"
             FROM 
-                (SELECT DISTINCT ON (inventory_item."serialNumber")
+                (SELECT DISTINCT ON (inventory_item."labId", inventory_item."serialNumber")
                     inventory_item."serialNumber",  -- Ensure each serial number is counted only once
                     inventory_item."vendorId",
                     DATE_PART('year', inventory_item."poDate") AS year,

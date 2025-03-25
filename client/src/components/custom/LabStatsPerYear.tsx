@@ -1,88 +1,93 @@
 import { FunctionComponent, useEffect, useState } from 'react';
 import { DataTable } from '@/components/custom/DataTable';
 import api from '@/axiosInterceptor';
-import { ColumnDef, Row } from '@tanstack/react-table';
+import { ColumnDef } from '@tanstack/react-table';
 import { Laboratory } from '@/types/types';
 
-interface LabStatsPerYear{
-    labId: string;
-    year: number;
+export interface StatData {
     totalQuantity: number;
     totalPrice: number;
 }
 
+interface LabStatsPerYear {
+    lab: Laboratory;
+    [year: number]: StatData | undefined; // Year as a key with structured data
+}
+
 interface LabStatsPerYearProps {
-    data: Array<LabStatsPerYear>;
+    data: Array<{ labId: string; year: number; totalQuantity: number; totalPrice: number }>;
 }
 
 const LabStatsPerYear: FunctionComponent<LabStatsPerYearProps> = ({ data }) => {
     const [labs, setLabs] = useState<Laboratory[]>([]);
     const currentYear = new Date().getFullYear();
     const years = Array.from({ length: currentYear - 2008 + 1 }, (_, i) => currentYear - i);
-    const [labIdMap, setlabIdMap] = useState<{ [key:string] : Laboratory }>({})
-    const [tableData, setTableData] = useState<LabStatsPerYear[]>([])
+    const [tableData, setTableData] = useState<LabStatsPerYear[]>([]);
 
     useEffect(() => {
-        const fetchLabs = async () => {
-            try {
-                const response = await api('/labs');
-                setLabs(response.data);
-                (response.data as Laboratory[]).map(lab => {
-                    setlabIdMap((prev) => ({ ...prev, [lab.id] : lab }))
-                });
-
-                // Add remaining labIds to tableData
-                const updatedTableData = data;
-                response.data.forEach((lab: Laboratory) => {
-                    if (!updatedTableData.some(item => item.labId === lab.id)) {
-                        updatedTableData.push({
-                            labId: lab.id,
-                            year: 0, // Default year for missing data
-                            totalQuantity: 0,
-                            totalPrice: 0
-                        });
-                    }
-                });
-                setTableData(updatedTableData);
-            } catch (error) {
-                console.error('Error fetching labs:', error);
-            }
-        };
-
-        fetchLabs();
+        if (data.length){
+            const fetchLabs = async () => {
+                try {
+                    const response = await api('/labs');
+                    setLabs(response.data);
+    
+                    // Transform data: Group by `labId`
+                    const labMap: { [key: string]: LabStatsPerYear } = {};
+    
+                    response.data.forEach((lab: Laboratory) => labMap[lab.id] = { lab } )
+    
+                    data.forEach(({ labId, year, totalQuantity, totalPrice }) => {
+                        labMap[labId][year] = { totalQuantity: Number(totalQuantity), totalPrice: Number(totalPrice) };
+                    });
+    
+                    setTableData(Object.values(labMap));
+                } catch (error) {
+                    console.error('Error fetching labs:', error);
+                }
+            };
+    
+            fetchLabs();
+        }
     }, [data]);
 
     const columns: ColumnDef<LabStatsPerYear>[] = [
-        { accessorFn: (row) => labIdMap[row.labId]?.name || 'Unknown Lab', header: 'Lab Name' },
-        ...(years.map((year) => ({
+        {
+            accessorKey: 'lab.name',
+            header: 'Lab Name'
+        },
+        ...(years.map(year => ({
             accessorKey: year.toString(),
             header: year.toString(),
-            cell: ({ row }: { row: Row<LabStatsPerYear> }) => {
-                return row.original.year === year ? `${row.original.totalQuantity} (${Number(row.original.totalPrice).toLocaleString('en-IN', {
-                    style: 'currency',
-                    currency: 'INR'
-                })})` : '-';
-            },
-            meta: {
-                calculateSum: (rows: LabStatsPerYear[]) => {
-                    const totalQuantitySum = rows.filter(row => row.year === year).reduce((sum, row) => sum + Number(row.totalQuantity), 0);
-                    const totalPriceSum = rows.filter(row => row.year === year).reduce((sum, row) => sum + Number(row.totalPrice), 0);
-                    return `${totalQuantitySum} (${totalPriceSum.toLocaleString('en-IN', {
+            cell: ({ row }) => {
+                const yearData = row.original[year];
+                if (yearData) {
+                    return `${yearData.totalQuantity} (${yearData.totalPrice.toLocaleString('en-IN', {
                         style: 'currency',
                         currency: 'INR'
                     })})`;
                 }
+                return '-';
+            },
+            meta: {
+                calculateSum: (rows: LabStatsPerYear[]) => {
+                    const totalQuantitySum = rows.reduce((sum, row) => sum + (row[year]?.totalQuantity || 0), 0);
+                    const totalPriceSum = rows.reduce((sum, row) => sum + (row[year]?.totalPrice || 0), 0);
+                    return `${totalQuantitySum} (${totalPriceSum.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })})`;
+                }
             }
-        })) as ColumnDef<LabStatsPerYear>[]),
+        })) as ColumnDef<LabStatsPerYear>[])
     ];
 
-    return (
-        ( labs.length ? <DataTable data={tableData} columns={columns} mainSearchColumn={'Lab Name' as unknown as keyof LabStatsPerYear} initialState={{
-            columnPinning: {
-                left: ['labName']
-            }
-        }} /> : <></> )
-    );
+    return labs.length ? (
+        <DataTable
+            data={tableData}
+            columns={columns}
+            mainSearchColumn={'lab_name' as keyof LabStatsPerYear}
+            initialState={{
+                columnPinning: { left: ['lab_name'] }
+            }}
+        />
+    ) : null;
 };
 
 export default LabStatsPerYear;
