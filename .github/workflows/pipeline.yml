@@ -8,10 +8,13 @@ on:
 
 jobs:
   release:
-    name: Pull main and host the newest code for V1-Testing
+    name: Pull main and deploy newest code for V1-Testing
     runs-on: self-hosted
     steps:
-      - name: clone repo and update
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Build and deploy
         run: |
           cd /home/ubuntu/eee-inventory
           git pull
