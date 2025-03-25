@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import api from "@/axiosInterceptor";
 import { Laboratory, SheetInfo } from "@/types/types";
 import ProcessingStage from "./ProcessingStage";
-import { AlertCircle, Check, Info } from "lucide-react";
+import { AlertCircle, Check } from "lucide-react";
 
 const BulkAddFromExcel = () => {
   const [stage, setStage] = useState(1);

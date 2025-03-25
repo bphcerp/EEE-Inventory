@@ -8,7 +8,6 @@ import { toast } from "sonner";
 import api from "@/axiosInterceptor";
 import { Link, useNavigate } from "react-router";
 import { InventoryItem } from "@/types/types";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { TransferConfirmationDialog } from "@/components/custom/TransferConfirmationDialog";
 import VendorDetailsDialog from "@/components/custom/VendorDetailsDialog";
 
