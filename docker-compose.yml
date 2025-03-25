@@ -2,7 +2,7 @@ services:
   client:
     build: client
     ports:
-      - "3000:3000"
+      - "3500:3500"
     env_file:
       - client/.env
     depends_on:
@@ -11,7 +11,7 @@ services:
   server:
     build: server
     ports:
-      - "4000:4000"
+      - "4500:4500"
     environment:
       - NODE_ENV=production
     env_file:
@@ -23,7 +23,7 @@ services:
     image: postgres:15
     container_name: postgres
     ports:
-      - "5432:5432"
+      - "5431:5432"
     env_file:
       - server/.env
     volumes:
