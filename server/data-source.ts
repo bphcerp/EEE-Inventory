@@ -4,9 +4,7 @@ import { AccessToken, Category, InventoryItem, Laboratory, User, Vendor } from "
 import { config } from "dotenv";
 import path from "path";
 
-config({
-  path: path.join(__dirname, process.env.NODE_ENV === 'development' ? '.env.development' : '.env.production')
-})
+config()
 
 const { POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB, POSTGRES_HOST, POSTGRES_PORT } = process.env;
 

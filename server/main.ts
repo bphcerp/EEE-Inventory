@@ -13,9 +13,7 @@ import { WebSocketExpress } from "websocket-express";
 
 const app = new WebSocketExpress();
 
-config({
-  path: path.join(__dirname, process.env.NODE_ENV === 'development' ? '.env.development' : '.env.production')
-})
+config()
 
 // Enable CORS and allow credentials to be passed on
 app.useHTTP(cors({
