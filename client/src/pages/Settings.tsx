@@ -8,7 +8,7 @@ import AddUserDialog from "@/components/custom/AddUserDialog";
 import { AxiosError } from "axios";
 import { toast } from "sonner";
 import api from "@/axiosInterceptor";
-import { Category, Laboratory, User, Vendor } from "@/types/types";
+import { Category, Laboratory, User, Vendor, NewUserRequest, NewVendorRequest, NewCategoryRequest } from "@/types/types";
 import AddVendorDialog from "@/components/custom/AddVendorDialog";
 import AddLabDialog, { NewLaboratoryRequest } from "@/components/custom/AddLabDialog";
 import AddVendorCategoryDialog from "@/components/custom/AddVendorCategoryDialog";
@@ -82,20 +82,18 @@ const Settings = () => {
     fetchData()
   }, [selectedOption]);
 
-  const handleAddUser = (newUser : Omit<User, "id">) => {
-    api.post('/users',newUser)
-    .then(() => {
-      fetchData()
-      const addUserParam = searchParams.get('action') === 'addUser'
-      toast.success(`User added${addUserParam?' Redirecting...':''}`)
-      if (addUserParam) navigate('/add-item',{
-        state: location.state
+  const handleAddUser = (newUser: NewUserRequest) => {
+    api.post('/users', newUser)
+      .then(() => {
+        fetchData();
+        const addUserParam = searchParams.get('action') === 'addUser';
+        toast.success(`User added${addUserParam ? ' Redirecting...' : ''}`);
+        if (addUserParam) navigate('/add-item', { state: location.state });
       })
-    })
-    .catch((err) => {
-      console.error({ message: "Error adding user", err })
-      toast.error(((err as AxiosError).response?.data as any).message ?? "Error adding user")
-    });
+      .catch((err) => {
+        console.error({ message: "Error adding user", err });
+        toast.error(((err as AxiosError).response?.data as any).message ?? "Error adding user");
+      });
   };
 
   const handleAddLab = (newLab: NewLaboratoryRequest) => {
@@ -110,7 +108,7 @@ const Settings = () => {
       });
   };
 
-  const handleAddVendor = (newVendor: Partial<Vendor>) => {
+  const handleAddVendor = (newVendor: NewVendorRequest) => {
     api.post('/vendors', newVendor)
       .then(() => {
         fetchData();
@@ -122,15 +120,15 @@ const Settings = () => {
       });
   };
 
-  const handleAddCategory = (newCategory: Partial<Category>) => {
+  const handleAddCategory = (newCategory: NewCategoryRequest) => {
     api.post('/categories', newCategory)
       .then(() => {
         fetchData();
-        toast.success("Vendor category added successfully");
+        toast.success("Category added successfully");
       })
       .catch((err) => {
-        console.error({ message: "Error adding vendor category", err });
-        toast.error(((err as AxiosError).response?.data as any).message ?? "Error adding vendor category");
+        console.error({ message: "Error adding category", err });
+        toast.error(((err as AxiosError).response?.data as any).message ?? "Error adding category");
       });
   };
 

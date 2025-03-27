@@ -8,10 +8,10 @@ import { Label } from "../ui/label";
 import { toast } from "sonner";
 import { ShieldAlert } from "lucide-react";
 import { DialogDescription } from "@radix-ui/react-dialog";
-import { User } from "@/types/types";
+import { NewUserRequest } from "@/types/types";
 
 interface AddUserDialogProps {
-	onAddUser: (user: Omit<User, "id">) => void
+	onAddUser: (user: NewUserRequest) => void
 	isOpen: boolean
 	setIsOpen: Dispatch<SetStateAction<boolean>>
 }
@@ -24,7 +24,7 @@ const AddUserDialog = ({ onAddUser, isOpen, setIsOpen }: AddUserDialogProps) => 
 			email: '',
 			permissions: 0 as 0 | 1,
 			role: '' as 'Admin' | 'Technician' | 'Faculty',
-		} as Omit<User,"id">,
+		} as NewUserRequest,
 		onSubmit: ({ value: data }) => {
 			if (!data.role){
 				toast.error('Role not assigned to user')

@@ -4,12 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Category } from "@/types/types";
+import { NewCategoryRequest } from "@/types/types";
 
 interface AddVendorCategoryDialogProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
-  onAddCategory: (newCategory: Partial<Category>) => void;
+  onAddCategory: (newCategory: NewCategoryRequest) => void;
 }
 
 const AddVendorCategoryDialog = ({ isOpen, setIsOpen, onAddCategory }: AddVendorCategoryDialogProps) => {

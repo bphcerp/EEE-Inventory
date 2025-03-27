@@ -73,3 +73,16 @@ export interface InventoryItem {
     equipmentPhoto?: string;
     remarks?: string;
 }
+
+export interface NewLaboratoryRequest extends Omit<Laboratory, "technicianInCharge" | "facultyInCharge"> {
+    technicianInCharge: string;
+    facultyInCharge: string;
+}
+
+export type NewUserRequest = Omit<User, "id">
+
+export interface NewVendorRequest extends Omit<Vendor, "id" | "categories"> {
+    categories: string[]; // Array of category IDs
+}
+
+export type NewCategoryRequest = Omit<Category, "id">

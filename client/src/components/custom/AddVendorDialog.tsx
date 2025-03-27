@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Select, SelectTrigger, SelectContent, SelectItem } from "@/components/ui/select";
 import api from "@/axiosInterceptor";
-import { Category, Vendor } from "@/types/types";
+import { Category, NewVendorRequest } from "@/types/types";
 import { X } from "lucide-react";
 import { useForm } from "@tanstack/react-form";
 import { Textarea } from "../ui/textarea";
@@ -14,7 +14,7 @@ import { Textarea } from "../ui/textarea";
 interface AddVendorDialogProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
-  onAddVendor: (newVendor: Partial<Vendor>) => void;
+  onAddVendor: (newVendor: NewVendorRequest) => void;
 }
 
 const AddVendorDialog = ({ isOpen, setIsOpen, onAddVendor }: AddVendorDialogProps) => {
@@ -29,13 +29,13 @@ const AddVendorDialog = ({ isOpen, setIsOpen, onAddVendor }: AddVendorDialogProp
       email: "",
       address: "",
       categories: [] as string[],
-    },
+    } as NewVendorRequest,
     onSubmit: ({ value: data }) => {
       if (!data.vendorId || !data.name || !data.pocName || !data.phoneNumber || !data.email) {
         toast.error("Fields are missing");
         return;
       }
-      onAddVendor(data as unknown as Partial<Vendor>);
+      onAddVendor(data);
       setIsOpen(false);
     },
   });
