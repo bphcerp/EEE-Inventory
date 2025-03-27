@@ -82,7 +82,7 @@ const Settings = () => {
     fetchData()
   }, [selectedOption]);
 
-  const handleAddUser = (newUser : Partial<User> & { labIds: string[] } ) => {
+  const handleAddUser = (newUser : Omit<User, "id">) => {
     api.post('/users',newUser)
     .then(() => {
       fetchData()

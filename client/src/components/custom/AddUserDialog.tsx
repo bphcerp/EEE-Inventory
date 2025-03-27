@@ -11,7 +11,7 @@ import { DialogDescription } from "@radix-ui/react-dialog";
 import { User } from "@/types/types";
 
 interface AddUserDialogProps {
-	onAddUser: (user: Partial<User> & { labIds: string[] }) => void
+	onAddUser: (user: Omit<User, "id">) => void
 	isOpen: boolean
 	setIsOpen: Dispatch<SetStateAction<boolean>>
 }
@@ -24,8 +24,7 @@ const AddUserDialog = ({ onAddUser, isOpen, setIsOpen }: AddUserDialogProps) => 
 			email: '',
 			permissions: 0 as 0 | 1,
 			role: '' as 'Admin' | 'Technician' | 'Faculty',
-			labIds: [] as string[]
-		},
+		} as Omit<User,"id">,
 		onSubmit: ({ value: data }) => {
 			if (!data.role){
 				toast.error('Role not assigned to user')
