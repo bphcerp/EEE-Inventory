@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import api from "@/axiosInterceptor";
 import { Category, Laboratory, User, Vendor } from "@/types/types";
 import AddVendorDialog from "@/components/custom/AddVendorDialog";
-import AddLabDialog from "@/components/custom/AddLabDialog";
+import AddLabDialog, { NewLaboratoryRequest } from "@/components/custom/AddLabDialog";
 import AddVendorCategoryDialog from "@/components/custom/AddVendorCategoryDialog";
 import AddInventoryCategoryDialog from "@/components/custom/AddInventoryCategoryDialog";
 
@@ -98,7 +98,7 @@ const Settings = () => {
     });
   };
 
-  const handleAddLab = (newLab: Partial<Laboratory>) => {
+  const handleAddLab = (newLab: NewLaboratoryRequest) => {
     api.post('/labs', newLab)
       .then(() => {
         fetchData();
