@@ -1,20 +1,28 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { NewCategoryRequest } from "@/types/types";
+import { Category, NewCategoryRequest } from "@/types/types";
 
 interface AddInventoryCategoryDialogProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
   onAddCategory: (newCategory: NewCategoryRequest) => void;
+  editInitialData?: Category;
 }
 
-const AddInventoryCategoryDialog = ({ isOpen, setIsOpen, onAddCategory }: AddInventoryCategoryDialogProps) => {
+const AddInventoryCategoryDialog = ({ isOpen, setIsOpen, onAddCategory, editInitialData }: AddInventoryCategoryDialogProps) => {
   const [name, setName] = useState("");
-  const [code, setCode] = useState("")
+  const [code, setCode] = useState("");
+
+  useEffect(() => {
+      if (editInitialData){
+        setCode(editInitialData.code)
+        setName(editInitialData.name)
+      }
+    },[editInitialData])
 
   const handleSubmit = () => {
     if (name) {
@@ -30,11 +38,17 @@ const AddInventoryCategoryDialog = ({ isOpen, setIsOpen, onAddCategory }: AddInv
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button>Add Inventory Category</Button>
+        {editInitialData ? (
+          <Button variant="outline" className="text-blue-500 hover:text-blue-700 hover:bg-background">
+            Edit Inventory Category
+          </Button>
+        ) : (
+          <Button>Add Inventory Category</Button>
+        )}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add New Inventory Category</DialogTitle>
+          <DialogTitle>{editInitialData ? "Edit Inventory Category" : "Add Inventory Category"}</DialogTitle>
         </DialogHeader>
         <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
         <div>
@@ -47,7 +61,7 @@ const AddInventoryCategoryDialog = ({ isOpen, setIsOpen, onAddCategory }: AddInv
           </div>
           <DialogFooter>
             <Button variant="secondary" type="button" onClick={() => setIsOpen(false)}>Cancel</Button>
-            <Button type="submit">Add Category</Button>
+            <Button type="submit">{editInitialData ? "Edit Category" : "Add Category"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>

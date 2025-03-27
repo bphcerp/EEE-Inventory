@@ -3,7 +3,7 @@
  * @description Routes for managing inventory-related operations.
  */
 
-import { addBulkData, addInventoryItem, getAccessToken, getInventory, getLastItemNumber, transferItems, getImportantDates } from '../controllers/inventoryController';
+import { addBulkData, addInventoryItem, getAccessToken, getInventory, getLastItemNumber, transferItems, getImportantDates, patchInventoryItem } from '../controllers/inventoryController';
 import { Router } from 'websocket-express';
 import checkAdminMiddlewareforGET from '../middleware/checkAdminMiddlewareforGet';
 
@@ -14,6 +14,9 @@ router.post('/', addInventoryItem);
 
 // Route to add transfer inventory items from one lab to another
 router.patch('/transfer', transferItems);
+
+// Route to edit item(s)
+router.patch('/:id', patchInventoryItem);
 
 // Get items
 router.get('/', getInventory)

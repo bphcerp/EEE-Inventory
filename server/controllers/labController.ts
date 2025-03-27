@@ -48,3 +48,47 @@ export const addLab = async (req: Request, res: Response) => {
         console.error(error);
     }
 };
+
+// Update Laboratory Controller
+export const patchLab = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const updatedData: Partial<Laboratory> = req.body;
+
+        // Check if the lab exists
+        const lab = await labRepository.findOneBy({ id });
+        if (!lab) {
+            res.status(404).json({ message: 'Laboratory not found' });
+            return;
+        }
+
+        // Update the lab
+        const updatedLab = await labRepository.save(updatedData);
+        res.status(200).json({ message: 'Laboratory updated successfully', lab: updatedLab });
+    } catch (error) {
+        res.status(500).json({ message: 'Error updating laboratory', error });
+        console.error(error);
+    }
+};
+
+// Delete Laboratory Controller
+export const deleteLab = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+
+        // Check if the lab exists
+        const lab = await labRepository.findOneBy({ id });
+        if (!lab) {
+            res.status(404).json({ message: 'Laboratory not found' });
+            return;
+        }
+
+        // Delete the lab
+        await labRepository.delete(id);
+
+        res.status(204).json({ message: 'Laboratory deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ message: (error as any)?.code === '23503' ? ' Cannot delete, this lab has inventory' : 'Error deleting laboratory', error });
+        console.error(error);
+    }
+};
