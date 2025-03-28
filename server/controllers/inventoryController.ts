@@ -4,13 +4,14 @@
  */
 
 import { Request, Response } from 'express';
-import { categoryRepository, itemRepository, labRepository, tokenRepository, userRepository, vendorRepository } from '../repositories/repositories';
-import { In, IsNull, LessThanOrEqual, QueryRunner } from 'typeorm';
+import { categoryRepository, itemRepository, labRepository, tokenRepository, vendorRepository } from '../repositories/repositories';
+import { In, IsNull, QueryRunner } from 'typeorm';
 import fs from 'fs';
 import path from 'path';
 import { AccessToken, Category, InventoryItem, Laboratory, User } from '../entities/entities';
 import { WSResponse } from 'websocket-express';
 import * as XLSX from 'xlsx';
+import ExcelJS from "exceljs"
 
 import parser from 'any-date-parser';
 
@@ -129,15 +130,15 @@ async function mapToInventoryItemAndSave(data: any[], selectedLab: Laboratory, c
     };
 
     if (baseItem.quantity === 1) {
-        baseItem.equipmentID = `BITS/EEE/${selectedLab.code}/${itemCategory.code}/${lastItemNumber.toString().padStart(4,'0')}`
+        baseItem.equipmentID = `BITS/EEE/${selectedLab.code}/${itemCategory.code}/${lastItemNumber.toString().padStart(4, '0')}`
         const newItem = queryRunner.manager.create(InventoryItem, baseItem)
         await queryRunner.manager.save(newItem)
     }
     else {
-        const baseEquipmentID = `BITS/EEE/${selectedLab.code}/${itemCategory.code}/${lastItemNumber.toString().padStart(4,'0')}`;
+        const baseEquipmentID = `BITS/EEE/${selectedLab.code}/${itemCategory.code}/${lastItemNumber.toString().padStart(4, '0')}`;
         const items = Array.from({ length: baseItem.quantity! }, (_, i) => ({
             ...baseItem,
-            equipmentID: `${baseEquipmentID}-${(i + 1).toString().padStart(2,'0')}`,
+            equipmentID: `${baseEquipmentID}-${(i + 1).toString().padStart(2, '0')}`,
         }));
         await queryRunner.manager.save(queryRunner.manager.create(InventoryItem, items));
     }
@@ -194,12 +195,109 @@ const getAndSaveDataFromSheet = async (path: string, sheetInfo: SheetInfo, selec
 };
 
 
+const camelCaseToTitleCase = (str: string): string => {
+    return str
+        .replace(/([A-Z])/g, " $1")                // Insert a space before all caps
+        .split(" ")
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(" ")
+        .trim();
+};
+
+const transformLinkCell = (linkValue: string): ExcelJS.CellValue => {
+    return {
+        richText: [
+            {
+                text: "View",
+                font: { color: { argb: "FF0000FF" }, underline: true }
+            }
+        ],
+        hyperlink: linkValue
+    };
+};
+
+
+export const exportData = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { itemIds, columnsVisible }: { itemIds: string[]; columnsVisible: string[] } = req.body;
+
+        if (!itemIds?.length || !columnsVisible?.length) {
+            res.status(400).json({ error: "itemIds and columnsVisible are required arrays." });
+            return;
+        }
+
+        // Fetch data with only the required columns
+        const items: InventoryItem[] = await itemRepository.find({
+            where: { id: In(itemIds) },
+            select: columnsVisible.reduce((acc, column) => {
+                acc[column] = true;
+                return acc;
+            }, {} as Record<string, true>),
+        });
+
+        if (!items.length) {
+            res.status(404).json({ error: "No items found for given IDs." });
+            return;
+        }
+
+        // Create a new workbook and add a worksheet
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet("Exported Data");
+
+        // Convert header keys from camelCase to Capitalise Case
+        const transformedHeaders = columnsVisible.map(header => camelCaseToTitleCase(header));
+
+        // Add header row with styling
+        const headerRow = worksheet.addRow(transformedHeaders);
+        headerRow.eachCell(cell => {
+            cell.font = { bold: true };
+            cell.alignment = { wrapText: true, vertical: "middle", horizontal: "left" };
+        });
+
+        const linkKeys = ['softcopyOfPO', 'softcopyOfInvoice', 'softcopyOfNFA', 'softcopyOfAMC', 'equipmentPhoto']
+
+        // Add data rows
+        items.forEach(item => {
+            const rowData = columnsVisible.map(col => {
+                const cellValue = item[col as keyof InventoryItem];
+                if (linkKeys.includes(col) && typeof cellValue === "string") {
+                    return transformLinkCell(cellValue);
+                }
+                return cellValue;
+            });
+            worksheet.addRow(rowData);
+        });
+
+        // Set column widths (optional)
+        columnsVisible.forEach((col, index) => {
+            const maxLength = Math.max(
+                col.length,
+                ...items.map(item => (item[col as keyof InventoryItem] ? item[col as keyof InventoryItem]!.toString().length : 10))
+            );
+            worksheet.getColumn(index + 1).width = Math.min(maxLength + 2, 30);
+        });
+
+        // Write workbook to a buffer
+        const buffer = await workbook.xlsx.writeBuffer();
+
+        // Set response headers for file download
+        res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        res.setHeader("Content-Disposition", 'attachment; filename="EEE_Department_-_Export_Inventory.xlsx"');
+
+        res.send(buffer);
+    } catch (error) {
+        console.error("Error exporting data:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+};
+
+
 export const getAccessToken = async (req: Request, res: Response) => {
     const queryRunner = itemRepository.manager.connection.createQueryRunner();
     await queryRunner.startTransaction();
 
     try {
-        const token = await tokenRepository.findOneBy({ admin: { id : req.user?.id } });
+        const token = await tokenRepository.findOneBy({ admin: { id: req.user?.id } });
 
         if (token) {
             if (token.tokenExpiry < new Date()) {
@@ -321,17 +419,17 @@ export const addInventoryItem = async (req: Request, res: Response) => {
 
         let result: InventoryItem | InventoryItem[];
         if (req.body.quantity == 1) {
-            const equipmentID = `BITS/EEE/${lab!.code}/${category!.code}/${lastItemNumber.toString().padStart(4,'0')}`
+            const equipmentID = `BITS/EEE/${lab!.code}/${category!.code}/${lastItemNumber.toString().padStart(4, '0')}`
             const newItem = itemRepository.create(formData as Object);
             newItem.equipmentID = equipmentID
             newItem.serialNumber = lastItemNumber
             result = await itemRepository.save(newItem);
         }
         else {
-            const baseEquipmentID = `BITS/EEE/${lab!.code}/${category!.code}/${lastItemNumber.toString().padStart(4,'0')}`;
+            const baseEquipmentID = `BITS/EEE/${lab!.code}/${category!.code}/${lastItemNumber.toString().padStart(4, '0')}`;
             const items = Array.from({ length: req.body.quantity }, (_, i) => ({
                 ...formData,
-                equipmentID: `${baseEquipmentID}-${(i + 1).toString().padStart(2,'0')}`,
+                equipmentID: `${baseEquipmentID}-${(i + 1).toString().padStart(2, '0')}`,
                 serialNumber: lastItemNumber
             }));
             result = await itemRepository.save(itemRepository.create(items));
@@ -516,7 +614,7 @@ export const deleteItem = async (req: Request, res: Response) => {
         const { id } = req.params;
 
         // Check if the item exists
-        const item = await itemRepository.findOne({ where : { id } , relations : ['lab'] });
+        const item = await itemRepository.findOne({ where: { id }, relations: ['lab'] });
         if (!item) {
             res.status(404).json({ message: 'Inventory item not found' });
             return;

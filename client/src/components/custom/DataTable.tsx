@@ -48,6 +48,7 @@ interface DataTableProps<T> {
     initialState?: InitialTableState
     setSelected?: (selected: T[]) => void;
     additionalButtons?: ReactNode
+    exportFunction?: (itemIds : string[], columnsVisible : string[]) => void
 }
 
 export type TableFilterType = "dropdown" | "multiselect" | "search" | "number-range" | "date-range";
@@ -61,7 +62,7 @@ declare module '@tanstack/react-table' {
     }
 }
 
-export function DataTable<T>({ data, columns, mainSearchColumn, initialState, setSelected, additionalButtons }: DataTableProps<T>) {
+export function DataTable<T>({ data, columns, mainSearchColumn, initialState, setSelected,exportFunction, additionalButtons }: DataTableProps<T>) {
     const [sorting, setSorting] = useState<SortingState>([])
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(
         []
@@ -213,7 +214,7 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, se
                                     checked={column.getFilterValue() === value}
                                     onCheckedChange={(checked) => column.setFilterValue(checked ? value : null)}
                                 >
-                                    {value as string}
+                                    {value as string ?? "Not Provided"}
                                 </DropdownMenuCheckboxItem>
                             ))}
                         </DropdownMenuContent>
@@ -239,7 +240,7 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, se
                                         );
                                     }}
                                 >
-                                    {value as string}
+                                    {value as string ?? "Not Provided"}
                                 </DropdownMenuCheckboxItem>
                             ))}
                         </DropdownMenuContent>
@@ -357,6 +358,14 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, se
                 />}
                 <div className="flex items-center space-x-2">
                     {additionalButtons}
+                    { exportFunction ? <Button onClick={() => {
+                        // Export function just returns the ids of the rows and visible columns, data fetching and excel
+                        // generation is handled by the backend
+
+                        const itemIds = table.getPrePaginationRowModel().rows.map(row => (row.original as any).id)
+                        const columnsVisible = table.getVisibleFlatColumns().map(column => column.id.includes('_') ? column.id.split('_')[0] :column.id).filter(columnId  => columnId !== 'S.No')
+                        exportFunction(itemIds, columnsVisible)
+                    }}>Export Data</Button> : <></> }
                     <Button onClick={() => {
                         // table.reset() doesn't work
                         table.resetColumnFilters()

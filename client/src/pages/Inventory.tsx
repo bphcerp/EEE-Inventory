@@ -39,7 +39,7 @@ export const Inventory = () => {
     const columns: ColumnDef<InventoryItem>[] = [
 
         // Three pinned columns: EquipmentID, Item Name, Category, PO Number
-        { accessorFn:  () => 'S.No', header: 'S.No', cell: ({row}) => row.index + 1 },
+        { accessorFn: () => 'S.No', header: 'S.No', cell: ({ row }) => row.index + 1 },
         { accessorKey: 'equipmentID', header: 'Equipment ID', meta: { filterType: 'search' as TableFilterType } },
         { accessorKey: 'itemName', header: 'Item Name' },
         { accessorKey: 'itemCategory.name', header: 'Category', meta: { filterType: 'dropdown' as TableFilterType } },
@@ -48,13 +48,13 @@ export const Inventory = () => {
         // Unpinned columns
         { accessorKey: 'createdAt', header: 'Created At', cell: ({ getValue }) => new Date(getValue() as string).toLocaleString(), enableColumnFilter: false },
         { accessorKey: 'updatedAt', header: 'Updated At', cell: ({ getValue }) => new Date(getValue() as string).toLocaleString(), enableColumnFilter: false },
-        { accessorFn: (row) => row.lab.name ?? "NA", header: 'Laboratory', meta: { filterType: 'multiselect' as TableFilterType } },
+        { accessorKey: 'lab.name', header: 'Laboratory', meta: { filterType: 'multiselect' as TableFilterType } },
         { accessorKey: 'labInchargeAtPurchase', header: 'Lab Incharge at Purchase' },
         { accessorKey: 'labTechnicianAtPurchase', header: 'Lab Technician at Purchase' },
         { accessorFn: (row) => Number(row.poAmount), header: 'PO Amount', cell: ({ getValue }) => (getValue() as number).toLocaleString('en-IN', { style: "currency", currency: "INR" }), meta: { filterType: 'number-range' as TableFilterType } },
         { accessorKey: 'poDate', header: 'PO Date', meta: { filterType: 'date-range' as TableFilterType } },
         { accessorKey: 'currentLocation', header: 'Current Location', meta: { filterType: 'dropdown' as TableFilterType } },
-        { accessorFn: (row) => row.status ?? "Not Provided", header: 'Status', meta: { filterType: 'dropdown' as TableFilterType } },
+        { accessorKey: 'status', header: 'Status', meta: { filterType: 'dropdown' as TableFilterType } },
         { accessorKey: 'specifications', header: 'Specifications' },
         { accessorKey: 'noOfLicenses', header: 'No of Licenses' },
         { accessorKey: 'natureOfLicense', header: 'Nature of License' },
@@ -120,9 +120,30 @@ export const Inventory = () => {
                     <Skeleton className="w-full h-96" />
                 </div>
             ) : (
-                <DataTable<InventoryItem> data={inventoryData} columns={columns} mainSearchColumn="itemName" initialState={{
+                <DataTable<InventoryItem> data={inventoryData} exportFunction={(itemIds, columnsVisible) => {
+                    columnsVisible = columnsVisible.map(column => column === 'PO Amount' ? 'poAmount' : column);
+
+                    columnsVisible = columnsVisible.map(column => column === 'PO Amount' ? 'poAmount' : column);
+
+                    api.post('/inventory/export', { itemIds, columnsVisible }, { responseType: 'blob' })
+                        .then(response => {
+                            const blob = new Blob([response.data], { type: response.headers['content-type'] });
+                            const link = document.createElement('a');
+                            link.href = URL.createObjectURL(blob);
+                            link.download= "EEE Department - Export Inventory.xlsx"
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            URL.revokeObjectURL(link.href);
+                            toast.success('File downloaded successfully!');
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            toast.error('Failed to download file');
+                        });
+                }} columns={columns} mainSearchColumn="itemName" initialState={{
                     columnPinning: {
-                        left: ['S.No','equipmentID', 'itemName', 'itemCategory', 'poNumber']
+                        left: ['S.No', 'equipmentID', 'itemName', 'itemCategory', 'poNumber']
                     }
                 }} setSelected={setSelectedItems} additionalButtons={<>
                     {selectedItems.length ? (
@@ -141,17 +162,18 @@ export const Inventory = () => {
                                     (item[field as keyof InventoryItem] as Date) = new Date(item[field as keyof InventoryItem]);
                                 }
                             });
-                            ["itemCategory","lab","vendor"].forEach((field) => {
+                            ["itemCategory", "lab", "vendor"].forEach((field) => {
                                 if (item[field as keyof InventoryItem]) {
                                     (item[field as keyof InventoryItem] as string) = item[field as 'lab' | 'itemCategory' | 'vendor'].id
                                 }
                             });
 
                             navigate('/add-item', {
-                                state : {
-                                    toBeEditedItem : item
+                                state: {
+                                    toBeEditedItem: item
                                 }
-                            })}}
+                            })
+                        }}
                             className="text-blue-500 hover:text-blue-700 hover:bg-background">Edit Item</Button>
                             : <Button onClick={() => navigate('/add-item')}>Add Item</Button> : <></>}
                 </>} />
