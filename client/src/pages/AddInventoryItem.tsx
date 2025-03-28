@@ -23,7 +23,7 @@ const AddInventoryItem = () => {
     const [lastItemNumber, setLastItemNumber] = useState<number>()
 
     const location = useLocation()
-    const [editMode, setEditMode] = useState(!!location.state.toBeEditedItem)
+    const editMode = !!location.state.toBeEditedItem
 
     useEffect(() => {
         api("/labs").then(({ data }) => {
