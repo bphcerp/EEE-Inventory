@@ -8,7 +8,7 @@ import { categoryRepository, itemRepository, labRepository, tokenRepository, use
 import { In, IsNull, LessThanOrEqual, QueryRunner } from 'typeorm';
 import fs from 'fs';
 import path from 'path';
-import { Category, InventoryItem, Laboratory, User } from '../entities/entities';
+import { AccessToken, Category, InventoryItem, Laboratory, User } from '../entities/entities';
 import { WSResponse } from 'websocket-express';
 import * as XLSX from 'xlsx';
 
@@ -199,11 +199,11 @@ export const getAccessToken = async (req: Request, res: Response) => {
     await queryRunner.startTransaction();
 
     try {
-        const token = await tokenRepository.findOneBy({ admin: req.user! });
+        const token = await tokenRepository.findOneBy({ admin: { id : req.user?.id } });
 
         if (token) {
             if (token.tokenExpiry < new Date()) {
-                await queryRunner.manager.delete(tokenRepository.target, token);
+                await queryRunner.manager.delete(tokenRepository.target, token.id);
             } else {
                 await queryRunner.commitTransaction();
                 res.status(200).json({ accessToken: token.id });
@@ -211,7 +211,7 @@ export const getAccessToken = async (req: Request, res: Response) => {
             }
         }
 
-        const newToken = tokenRepository.create();
+        const newToken = queryRunner.manager.create(AccessToken);
         newToken.tokenExpiry = new Date(Date.now() + 10 * 60);
         newToken.admin = { id: req.user!.id } as any;
         const savedToken = await queryRunner.manager.save(newToken);
