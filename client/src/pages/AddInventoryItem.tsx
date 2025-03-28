@@ -20,7 +20,7 @@ const AddInventoryItem = () => {
     const [filteredLabs, setFilteredLabs] = useState<Laboratory[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
     const [vendors, setVendors] = useState<Vendor[]>([])
-    const [lastItemNumber, setLastItemNumber] = useState()
+    const [lastItemNumber, setLastItemNumber] = useState<number>()
 
     const location = useLocation()
     const [editMode, setEditMode] = useState(!!location.state.toBeEditedItem)
@@ -105,6 +105,10 @@ const AddInventoryItem = () => {
         },
     });
 
+    useEffect(() => {
+        if (editMode) setLastItemNumber(parseInt(location.state.toBeEditedItem.equipmentID.match(/\d+/)[0] as string))
+    },[])
+
 
     return (
         <div className="relative flex flex-col p-5">
@@ -125,7 +129,7 @@ const AddInventoryItem = () => {
                             {(field) => (
                                 <div className="flex flex-col space-y-2">
                                     <Label>Lab</Label>
-                                    <Select value={field.state.value} onValueChange={(value) => {
+                                    <Select disabled={editMode} value={field.state.value} onValueChange={(value) => {
                                         field.handleChange(value)
                                         updateLastItemNumber(value)
                                     }}>
@@ -189,7 +193,7 @@ const AddInventoryItem = () => {
                         if (isDirty) {
                             const lab = labs.find(lab => lab.id === labId)
                             const categoryCode = categories.find(cateogory => cateogory.id === categoryId)?.code
-
+                            
                             const equipmentID = (lab && categoryCode && lastItemNumber) ? `BITS/EEE/${lab.code}/${categoryCode}/${quantity > 1 ? `${lastItemNumber}-(1-${quantity})` : lastItemNumber}` : ''
                             setFieldValue('equipmentID', equipmentID)
                         }
