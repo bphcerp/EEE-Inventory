@@ -8,7 +8,7 @@ import { categoryRepository, itemRepository, labRepository, tokenRepository, ven
 import { In, IsNull, QueryRunner } from 'typeorm';
 import fs from 'fs';
 import path from 'path';
-import { AccessToken, Category, InventoryItem, Laboratory, User } from '../entities/entities';
+import { AccessToken, Category, InventoryItem, Laboratory, User, Vendor } from '../entities/entities';
 import { WSResponse } from 'websocket-express';
 import * as XLSX from 'xlsx';
 import ExcelJS from "exceljs"
@@ -204,19 +204,6 @@ const camelCaseToTitleCase = (str: string): string => {
         .trim();
 };
 
-const transformLinkCell = (linkValue: string): ExcelJS.CellValue => {
-    return {
-        richText: [
-            {
-                text: "View",
-                font: { color: { argb: "FF0000FF" }, underline: true }
-            }
-        ],
-        hyperlink: linkValue
-    };
-};
-
-
 export const exportData = async (req: Request, res: Response): Promise<void> => {
     try {
         const { itemIds, columnsVisible }: { itemIds: string[]; columnsVisible: string[] } = req.body;
@@ -226,56 +213,88 @@ export const exportData = async (req: Request, res: Response): Promise<void> => 
             return;
         }
 
+        columnsVisible.splice(4, 0, 'quantity')
+
         // Fetch data with only the required columns
         const items: InventoryItem[] = await itemRepository.find({
             where: { id: In(itemIds) },
-            select: columnsVisible.reduce((acc, column) => {
-                acc[column] = true;
-                return acc;
-            }, {} as Record<string, true>),
+            order: {
+                equipmentID: 'ASC'
+            },
+            relations: ['lab', 'vendor', 'itemCategory'],
+            select: ['serialNumber', ...(columnsVisible as (keyof InventoryItem)[])],
         });
+
 
         if (!items.length) {
             res.status(404).json({ error: "No items found for given IDs." });
             return;
         }
 
+        //Get unique serial number per lab
+        const uniqueItems = Object.values(
+            items.reduce((acc, item) => {
+                const key = `${item.serialNumber}-${item.lab.id}`;
+                if (!acc[key]) acc[key] = item;
+                return acc;
+            }, {} as Record<string, InventoryItem>)
+        )
+
+        const uniqueLabIds = [...new Set(items.map(item => item.lab.id))]
+        const uniqueLabs = await labRepository.findBy({ id : In(uniqueLabIds) })
+
         // Create a new workbook and add a worksheet
         const workbook = new ExcelJS.Workbook();
-        const worksheet = workbook.addWorksheet("Exported Data");
+
+        if (columnsVisible.includes('vendor')) {
+            // Remove vendor and all vendor's fields
+            columnsVisible.splice(columnsVisible.indexOf('vendor'), 1, 'Vendor Id', 'Vendor Name', 'Vendor POC Name', 'Vendor Phone Number', 'Vendor Email')
+        }
 
         // Convert header keys from camelCase to Capitalise Case
         const transformedHeaders = columnsVisible.map(header => camelCaseToTitleCase(header));
 
-        // Add header row with styling
-        const headerRow = worksheet.addRow(transformedHeaders);
-        headerRow.eachCell(cell => {
-            cell.font = { bold: true };
-            cell.alignment = { wrapText: true, vertical: "middle", horizontal: "left" };
-        });
-
-        const linkKeys = ['softcopyOfPO', 'softcopyOfInvoice', 'softcopyOfNFA', 'softcopyOfAMC', 'equipmentPhoto']
 
         // Add data rows
-        items.forEach(item => {
-            const rowData = columnsVisible.map(col => {
-                const cellValue = item[col as keyof InventoryItem];
-                if (linkKeys.includes(col) && typeof cellValue === "string") {
-                    return transformLinkCell(cellValue);
-                }
-                return cellValue;
+        uniqueLabs.map(lab => {
+            const worksheet = workbook.addWorksheet(lab.name);
+            // Add header row with styling
+            const headerRow = worksheet.addRow(transformedHeaders);
+            headerRow.eachCell(cell => {
+                cell.font = { bold: true };
+                cell.alignment = { wrapText: true, vertical: "middle", horizontal: "left" };
             });
-            worksheet.addRow(rowData);
-        });
+            uniqueItems.filter(item => item.lab.id === lab.id).forEach(item => {
+                let rowData = columnsVisible.map(col => {
+                    const cellValue = item[col as keyof InventoryItem];
+                    if (col === 'lab') return (cellValue as Laboratory).name
+                    else if (col === 'itemCategory') return (cellValue as Category).name
+                    else if (col === 'Vendor Id') return item['vendor'].vendorId
+                    else if (col === 'Vendor Name') return item['vendor'].name
+                    else if (col === 'Vendor POC Name') return item['vendor'].pocName
+                    else if (col === 'Vendor Phone Number') return item['vendor'].phoneNumber
+                    else if (col === 'Vendor Email') return item['vendor'].email
+                    else if (col === 'equipmentID' && item['quantity'] > 1) return `${cellValue}-${(item['quantity'] as number).toString().padStart(2, '0')}`
+                    else if (cellValue instanceof Date) return cellValue.toString()
+                    return cellValue;
+                });
+                let newRow = worksheet.addRow(rowData);
 
-        // Set column widths (optional)
-        columnsVisible.forEach((col, index) => {
-            const maxLength = Math.max(
-                col.length,
-                ...items.map(item => (item[col as keyof InventoryItem] ? item[col as keyof InventoryItem]!.toString().length : 10))
-            );
-            worksheet.getColumn(index + 1).width = Math.min(maxLength + 2, 30);
-        });
+                newRow.eachCell(cell => {
+                    cell.alignment = { wrapText: true };
+                });
+            });
+
+            // Set column widths (optional)
+            columnsVisible.forEach((col, index) => {
+                const maxLength = Math.max(
+                    col.length,
+                    ...uniqueItems.map(item => (item[col as keyof InventoryItem] ? item[col as keyof InventoryItem]!.toString().length : 10))
+                );
+                worksheet.getColumn(index + 1).width = Math.min(maxLength + 2, 30);
+            });
+
+        })
 
         // Write workbook to a buffer
         const buffer = await workbook.xlsx.writeBuffer();
