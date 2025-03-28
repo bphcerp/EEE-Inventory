@@ -190,7 +190,7 @@ export class InventoryItem {
     @Column("text", { unique: true })
     equipmentID: string; // Equipment ID
 
-    @Column("text")
+    @Column({ type: "enum", enum: ['Institute', 'Project'], nullable: true })
     fundingSource: string; // Source of funding
 
     @Column("date", { nullable: true })

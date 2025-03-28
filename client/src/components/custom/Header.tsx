@@ -23,7 +23,7 @@ export const Header = () => {
 
     return (
         <header className="w-full shrink-0 h-(--header-height) grid grid-cols-3 items-center px-2">
-            <img className="w-12 h-12" src="/logocolor.png" />
+            <button className="hover:cursor-pointer" onClick={() => navigate('/')}><img className="w-12 h-12" src="/logocolor.png" /></button>
             
             <div className="flex items-center justify-center"><NavBar /></div>
 

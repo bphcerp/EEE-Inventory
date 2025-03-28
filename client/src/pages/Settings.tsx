@@ -16,6 +16,7 @@ import AddInventoryCategoryDialog from "@/components/custom/AddInventoryCategory
 import DeleteConfirmationDialog from "@/components/custom/DeleteConfirmationDialog";
 
 const labColumns: ColumnDef<Laboratory>[] = [
+  { accessorFn:  () => 'S.No', header: 'S.No', cell: ({row}) => row.index + 1 },
   { accessorKey: 'createdAt', header: 'Created At', cell: ({ getValue }) => new Date(getValue() as string).toLocaleString(), enableColumnFilter: false },
   { accessorKey: 'updatedAt', header: 'Updated At', cell: ({ getValue }) => new Date(getValue() as string).toLocaleString(), enableColumnFilter: false },
   { accessorKey: 'name', header: 'Name', meta: { filterType: 'search' as TableFilterType } },
@@ -26,6 +27,7 @@ const labColumns: ColumnDef<Laboratory>[] = [
 ];
 
 const categoryColumns: ColumnDef<Category>[] = [
+  { accessorFn:  () => 'S.No', header: 'S.No', cell: ({row}) => row.index + 1 },
   { accessorKey: 'createdAt', header: 'Created At', cell: ({ getValue }) => new Date(getValue() as string).toLocaleString(), enableColumnFilter: false },
   { accessorKey: 'updatedAt', header: 'Updated At', cell: ({ getValue }) => new Date(getValue() as string).toLocaleString(), enableColumnFilter: false },
   { accessorKey: 'name', header: 'Name', meta: { filterType: 'search' as TableFilterType } },
@@ -33,6 +35,7 @@ const categoryColumns: ColumnDef<Category>[] = [
 ];
 
 const userColumns: ColumnDef<User>[] = [
+  { accessorFn:  () => 'S.No', header: 'S.No', cell: ({row}) => row.index + 1 },
   { accessorKey: 'createdAt', header: 'Created At', cell: ({ getValue }) => new Date(getValue() as string).toLocaleString(), enableColumnFilter: false },
   { accessorKey: 'updatedAt', header: 'Updated At', cell: ({ getValue }) => new Date(getValue() as string).toLocaleString(), enableColumnFilter: false },
   { accessorKey: 'name', header: 'Name' },
@@ -42,6 +45,7 @@ const userColumns: ColumnDef<User>[] = [
 ];
 
 const vendorColumns: ColumnDef<Vendor>[] = [
+  { accessorFn:  () => 'S.No', header: 'S.No', cell: ({row}) => row.index + 1 },
   { accessorKey: 'createdAt', header: 'Created At', cell: ({ getValue }) => new Date(getValue() as string).toLocaleString(), enableColumnFilter: false },
   { accessorKey: 'updatedAt', header: 'Updated At', cell: ({ getValue }) => new Date(getValue() as string).toLocaleString(), enableColumnFilter: false },
   { accessorKey: 'vendorId', header: 'Vendor ID', meta: { filterType: 'search' as TableFilterType } },
@@ -231,7 +235,7 @@ const Settings = () => {
           </SelectContent>
         </Select>
         <div className="flex space-x-2">
-          {selectedOption && !!selected.length && (
+          {selectedOption && selected.length === 1 && (
             <DeleteConfirmationDialog onConfirm={handleDelete} />
           )}
           {selectedOption && selectedOption === "Users" && (

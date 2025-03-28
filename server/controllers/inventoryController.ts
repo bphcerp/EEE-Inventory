@@ -8,7 +8,7 @@ import { categoryRepository, itemRepository, labRepository, tokenRepository, use
 import { In, IsNull, LessThanOrEqual, QueryRunner } from 'typeorm';
 import fs from 'fs';
 import path from 'path';
-import { Category, InventoryItem, Laboratory, User } from '../entities/entities';
+import { AccessToken, Category, InventoryItem, Laboratory, User } from '../entities/entities';
 import { WSResponse } from 'websocket-express';
 import * as XLSX from 'xlsx';
 
@@ -129,15 +129,15 @@ async function mapToInventoryItemAndSave(data: any[], selectedLab: Laboratory, c
     };
 
     if (baseItem.quantity === 1) {
-        baseItem.equipmentID = `BITS/EEE/${selectedLab.code}/${itemCategory.code}/${lastItemNumber}`
+        baseItem.equipmentID = `BITS/EEE/${selectedLab.code}/${itemCategory.code}/${lastItemNumber.toString().padStart(4,'0')}`
         const newItem = queryRunner.manager.create(InventoryItem, baseItem)
         await queryRunner.manager.save(newItem)
     }
     else {
-        const baseEquipmentID = `BITS/EEE/${selectedLab.code}/${itemCategory.code}/${lastItemNumber}`;
+        const baseEquipmentID = `BITS/EEE/${selectedLab.code}/${itemCategory.code}/${lastItemNumber.toString().padStart(4,'0')}`;
         const items = Array.from({ length: baseItem.quantity! }, (_, i) => ({
             ...baseItem,
-            equipmentID: `${baseEquipmentID}-${i + 1}`,
+            equipmentID: `${baseEquipmentID}-${(i + 1).toString().padStart(2,'0')}`,
         }));
         await queryRunner.manager.save(queryRunner.manager.create(InventoryItem, items));
     }
@@ -199,11 +199,11 @@ export const getAccessToken = async (req: Request, res: Response) => {
     await queryRunner.startTransaction();
 
     try {
-        const token = await tokenRepository.findOneBy({ admin: req.user! });
+        const token = await tokenRepository.findOneBy({ admin: { id : req.user?.id } });
 
         if (token) {
             if (token.tokenExpiry < new Date()) {
-                await queryRunner.manager.delete(tokenRepository.target, token);
+                await queryRunner.manager.delete(tokenRepository.target, token.id);
             } else {
                 await queryRunner.commitTransaction();
                 res.status(200).json({ accessToken: token.id });
@@ -211,7 +211,7 @@ export const getAccessToken = async (req: Request, res: Response) => {
             }
         }
 
-        const newToken = tokenRepository.create();
+        const newToken = queryRunner.manager.create(AccessToken);
         newToken.tokenExpiry = new Date(Date.now() + 10 * 60);
         newToken.admin = { id: req.user!.id } as any;
         const savedToken = await queryRunner.manager.save(newToken);
@@ -321,17 +321,17 @@ export const addInventoryItem = async (req: Request, res: Response) => {
 
         let result: InventoryItem | InventoryItem[];
         if (req.body.quantity == 1) {
-            const equipmentID = `BITS/EEE/${lab!.code}/${category!.code}/${lastItemNumber}`
+            const equipmentID = `BITS/EEE/${lab!.code}/${category!.code}/${lastItemNumber.toString().padStart(4,'0')}`
             const newItem = itemRepository.create(formData as Object);
             newItem.equipmentID = equipmentID
             newItem.serialNumber = lastItemNumber
             result = await itemRepository.save(newItem);
         }
         else {
-            const baseEquipmentID = `BITS/EEE/${lab!.code}/${category!.code}/${lastItemNumber}`;
+            const baseEquipmentID = `BITS/EEE/${lab!.code}/${category!.code}/${lastItemNumber.toString().padStart(4,'0')}`;
             const items = Array.from({ length: req.body.quantity }, (_, i) => ({
                 ...formData,
-                equipmentID: `${baseEquipmentID}-${i + 1}`,
+                equipmentID: `${baseEquipmentID}-${(i + 1).toString().padStart(2,'0')}`,
                 serialNumber: lastItemNumber
             }));
             result = await itemRepository.save(itemRepository.create(items));
@@ -375,8 +375,6 @@ export const patchInventoryItem = async (req: Request, res: Response) => {
         }
 
         updatedData.equipmentID = equipmentID
-
-        console.log(updatedData)
 
         // Update
         if (item.quantity > 1) {
@@ -465,8 +463,8 @@ export const transferItems = async (req: Request, res: Response) => {
 
         const newItems = itemsToTransfer.map((item, index) => {
             const newEquipmentID = item.equipmentID.includes('-')
-                ? `BITS/EEE/${destLab.code}/${(item.itemCategory as unknown as Category).code}/${lastItemNumber}-${item.equipmentID.split('-')[1]}`
-                : `BITS/EEE/${destLab.code}/${(item.itemCategory as unknown as Category).code}/${lastItemNumber}`;
+                ? `BITS/EEE/${destLab.code}/${(item.itemCategory as unknown as Category).code}/${lastItemNumber.toString().padStart(4, '0')}-${item.equipmentID.split('-')[1]}`
+                : `BITS/EEE/${destLab.code}/${(item.itemCategory as unknown as Category).code}/${lastItemNumber.toString().padStart(4, '0')}`;
             return {
                 ...item,
                 id: undefined, // Let TypeORM generate a new ID

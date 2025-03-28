@@ -23,7 +23,7 @@ const AddInventoryItem = () => {
     const [lastItemNumber, setLastItemNumber] = useState<number>()
 
     const location = useLocation()
-    const editMode = !!location.state.toBeEditedItem
+    const editMode = !!(location.state?.toBeEditedItem ?? false)
 
     useEffect(() => {
         api("/labs").then(({ data }) => {
@@ -47,7 +47,7 @@ const AddInventoryItem = () => {
     }
 
     const { Field, Subscribe, handleSubmit, setFieldValue } = useForm({
-        defaultValues: location.state.toBeEditedItem ?? {
+        defaultValues: location.state?.toBeEditedItem ?? {
             lab: "",
             itemCategory: "",
             itemName: "",
@@ -81,10 +81,16 @@ const AddInventoryItem = () => {
         onSubmit: async ({ value: data, formApi: form }) => {
             if (editMode) {
                 const dirtyFields = Object.entries(form.state.fieldMetaBase).filter(([_key, value]) => value.isDirty).map(([key]) => key)
-                const editedItem = Object.fromEntries(Object.entries(data).filter(([key]) => dirtyFields.includes(key)))
 
+                if (!dirtyFields.length){
+                    toast.info("No updated fields detected")
+                    return
+                }
+
+                const editedItem = Object.fromEntries(Object.entries(data).filter(([key]) => dirtyFields.includes(key)))
+                
                 toast.info("Saving Edits...")
-                api.patch(`/inventory/${location.state.toBeEditedItem.id}`, editedItem)
+                api.patch(`/inventory/${location.state!.toBeEditedItem.id}`, editedItem)
                     .then(() => toast.success("Edit successful"))
                     .catch((err) => toast.error(((err as AxiosError).response?.data as any).message ?? "Error editing item"));
                 return
@@ -106,7 +112,7 @@ const AddInventoryItem = () => {
     });
 
     useEffect(() => {
-        if (editMode) setLastItemNumber(parseInt(location.state.toBeEditedItem.equipmentID.match(/\d+/)[0] as string))
+        if (editMode) setLastItemNumber(parseInt(location.state!.toBeEditedItem.equipmentID.match(/\d+/)[0] as string))
     },[])
 
 
@@ -194,7 +200,7 @@ const AddInventoryItem = () => {
                             const lab = labs.find(lab => lab.id === labId)
                             const categoryCode = categories.find(cateogory => cateogory.id === categoryId)?.code
                             
-                            const equipmentID = (lab && categoryCode && lastItemNumber) ? `BITS/EEE/${lab.code}/${categoryCode}/${quantity > 1 ? `${lastItemNumber}-(1-${quantity})` : lastItemNumber}` : ''
+                            const equipmentID = (lab && categoryCode && lastItemNumber) ? `BITS/EEE/${lab.code}/${categoryCode}/${quantity > 1 ? `${lastItemNumber.toString().padStart(4,'0')}-(01-${quantity.toString().padStart(2,'0')})` : lastItemNumber.toString().padStart(4,'0')}` : ''
                             setFieldValue('equipmentID', equipmentID)
                         }
                         return (<Field name="equipmentID">
@@ -342,7 +348,15 @@ const AddInventoryItem = () => {
                         {(field) => (
                             <div className="flex flex-col space-y-2">
                                 <Label>Funding Source</Label>
-                                <Input value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} onBlur={field.handleBlur} required />
+                                <Select value={field.state.value} onValueChange={(value) => field.handleChange(value)} required>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select Funding Source" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="Institute">Institute</SelectItem>
+                                        <SelectItem value="Project">Project</SelectItem>
+                                    </SelectContent>
+                                </Select>
                             </div>
                         )}
                     </Field>
@@ -490,8 +504,8 @@ const AddInventoryItem = () => {
 
                 {/* Submit Button */}
                 <div className="col-span-3 flex justify-end">
-                    <Subscribe selector={(state) => [state.canSubmit]}>
-                        {([canSubmit]) => <Button disabled={!canSubmit} form="inventory-form">{editMode ? "Edit Item" : "Add Item"}</Button>}
+                    <Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
+                        {([canSubmit, isSubmitting]) => <Button disabled={!canSubmit || isSubmitting} form="inventory-form">{isSubmitting ? "Processing..." : editMode ? "Edit Item" : "Add Item"}</Button>}
                     </Subscribe>
                 </div>
             </form>

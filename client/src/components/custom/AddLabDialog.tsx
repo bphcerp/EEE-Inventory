@@ -104,7 +104,6 @@ const AddLabDialog = ({ isOpen, setIsOpen, onAddLab, editInitialData }: AddLabDi
                   <Input
                     id="lab-code"
                     required
-                    disabled={!!editInitialData}
                     maxLength={4}
                     value={state.value}
                     onChange={(e) => handleChange(e.target.value.toUpperCase())}
