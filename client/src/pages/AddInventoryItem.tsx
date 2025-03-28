@@ -13,15 +13,17 @@ import FuzzySearch from "fuzzy-search";
 import { Link, useLocation } from "react-router";
 import { Category, Laboratory, Vendor } from "@/types/types";
 import { AlertTriangle } from "lucide-react";
+import { AxiosError } from "axios";
 
 const AddInventoryItem = () => {
     const [labs, setLabs] = useState<Laboratory[]>([]);
     const [filteredLabs, setFilteredLabs] = useState<Laboratory[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
     const [vendors, setVendors] = useState<Vendor[]>([])
-    const [lastItemNumber, setLastItemNumber] = useState()
+    const [lastItemNumber, setLastItemNumber] = useState<number>()
 
     const location = useLocation()
+    const [editMode, setEditMode] = useState(!!location.state.toBeEditedItem)
 
     useEffect(() => {
         api("/labs").then(({ data }) => {
@@ -41,12 +43,12 @@ const AddInventoryItem = () => {
 
 
     const updateLastItemNumber = (labId: string) => {
-        api(`/inventory/lastItemNumber/${labId}`).then(({data}) => setLastItemNumber(data.lastItemNumber))
+        api(`/inventory/lastItemNumber/${labId}`).then(({ data }) => setLastItemNumber(data.lastItemNumber))
     }
 
     const { Field, Subscribe, handleSubmit, setFieldValue } = useForm({
-        defaultValues: location.state ?? {
-            labId: "",
+        defaultValues: location.state.toBeEditedItem ?? {
+            lab: "",
             itemCategory: "",
             itemName: "",
             specifications: "",
@@ -62,7 +64,7 @@ const AddInventoryItem = () => {
             equipmentID: "",
             fundingSource: "",
             dateOfInstallation: null as Date | null,
-            vendorId: "",
+            vendor: "",
             warrantyFrom: null as Date | null,
             warrantyTo: null as Date | null,
             amcFrom: null as Date | null,
@@ -76,7 +78,17 @@ const AddInventoryItem = () => {
             softcopyOfAMC: null as string | null,
             equipmentPhoto: null as string | null,
         },
-        onSubmit: async ({ value: data }) => {
+        onSubmit: async ({ value: data, formApi: form }) => {
+            if (editMode) {
+                const dirtyFields = Object.entries(form.state.fieldMetaBase).filter(([_key, value]) => value.isDirty).map(([key]) => key)
+                const editedItem = Object.fromEntries(Object.entries(data).filter(([key]) => dirtyFields.includes(key)))
+
+                toast.info("Saving Edits...")
+                api.patch(`/inventory/${location.state.toBeEditedItem.id}`, editedItem)
+                    .then(() => toast.success("Edit successful"))
+                    .catch((err) => toast.error(((err as AxiosError).response?.data as any).message ?? "Error editing item"));
+                return
+            }
             try {
                 toast.info("Submitting...")
                 const response = await api.post("/inventory", data);
@@ -93,13 +105,17 @@ const AddInventoryItem = () => {
         },
     });
 
+    useEffect(() => {
+        if (editMode) setLastItemNumber(parseInt(location.state.toBeEditedItem.equipmentID.match(/\d+/)[0] as string))
+    },[])
+
 
     return (
         <div className="relative flex flex-col p-5">
 
-            <span className="flex justify-center items-center mt-2 mb-10 w-full text-3xl text-primary text-center">Add an item to the inventory</span>
+            <span className="flex justify-center items-center mt-2 mb-10 w-full text-3xl text-primary text-center">{editMode ? "Edit Inventory Item" : "Add an item to the inventory"}</span>
 
-            <Link to='/bulk-add'><Button className="absolute m-5 top-2 right-0">Add with Excel</Button></Link>
+            {!editMode && <Link to='/bulk-add'><Button className="absolute m-5 top-2 right-0">Add with Excel</Button></Link>}
 
             {/* Left Side - Form Fields */}
             <form className="flex flex-col space-y-6" id="inventory-form" onSubmit={(e) => {
@@ -109,11 +125,11 @@ const AddInventoryItem = () => {
                 <span className="text-2xl text-zinc-600 dark:text-zinc-300">Lab Details</span>
                 <div className="grid grid-cols-3 gap-4">
                     <Subscribe selector={(state) => [state.values]} children={([values]) => (
-                        <Field name="labId">
+                        <Field name="lab">
                             {(field) => (
                                 <div className="flex flex-col space-y-2">
                                     <Label>Lab</Label>
-                                    <Select value={field.state.value} onValueChange={(value) => {
+                                    <Select disabled={editMode} value={field.state.value} onValueChange={(value) => {
                                         field.handleChange(value)
                                         updateLastItemNumber(value)
                                     }}>
@@ -138,11 +154,13 @@ const AddInventoryItem = () => {
                             )}
                         </Field>
                     )} />
-                    <Subscribe selector={(state) => [state.values.labId]} children={([labId]) => {
-
-                        const lab = labs.find(lab => lab.id === labId)
-                        setFieldValue('labInchargeAtPurchase', lab?.facultyInCharge?.name)
-                        setFieldValue('labTechnicianAtPurchase', lab?.technicianInCharge?.name)
+                    <Subscribe selector={(state) => [state.values.lab, state.isDirty]} children={([labId, isDirty]) => {
+                        let lab: Laboratory | undefined;
+                        if (isDirty) {
+                            lab = labs.find(lab => lab.id === labId)
+                            setFieldValue('labInchargeAtPurchase', lab?.facultyInCharge?.name)
+                            setFieldValue('labTechnicianAtPurchase', lab?.technicianInCharge?.name)
+                        }
                         return (<>
                             <Field name="labInchargeAtPurchase">
                                 {({ state }) => (
@@ -171,13 +189,14 @@ const AddInventoryItem = () => {
                 </div>
                 <span className="text-2xl text-zinc-600 dark:text-zinc-300">Item Details</span>
                 <div className="grid grid-cols-3 gap-4">
-                    <Subscribe selector={(state) => [state.values.labId, state.values.itemCategory, state.values.quantity, lastItemNumber]} children={([labId, categoryId, quantity, lastItemNumber]) => {
-
-                        const lab = labs.find(lab => lab.id === labId)
-                        const categoryCode = categories.find(cateogory => cateogory.id === categoryId)?.code
-
-                        const equipmentID = (lab && categoryCode && lastItemNumber) ? `BITS/EEE/${lab.code}/${categoryCode}/${quantity > 1 ? `${lastItemNumber}-(1-${quantity})` : lastItemNumber}` : ''
-                        setFieldValue('equipmentID', equipmentID)
+                    <Subscribe selector={(state) => [state.values.lab, state.values.itemCategory, state.values.quantity, lastItemNumber, state.isDirty]} children={([labId, categoryId, quantity, lastItemNumber, isDirty]) => {
+                        if (isDirty) {
+                            const lab = labs.find(lab => lab.id === labId)
+                            const categoryCode = categories.find(cateogory => cateogory.id === categoryId)?.code
+                            
+                            const equipmentID = (lab && categoryCode && lastItemNumber) ? `BITS/EEE/${lab.code}/${categoryCode}/${quantity > 1 ? `${lastItemNumber}-(1-${quantity})` : lastItemNumber}` : ''
+                            setFieldValue('equipmentID', equipmentID)
+                        }
                         return (<Field name="equipmentID">
                             {({ state }) => (
                                 <div className="flex flex-col space-y-2">
@@ -195,7 +214,7 @@ const AddInventoryItem = () => {
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select Category" />
                                     </SelectTrigger>
-                                    <SelectContent>
+                                    <SelectContent onBlur={field.handleBlur}>
                                         {categories.map((category) => (
                                             <SelectItem key={category.id} value={category.id}>
                                                 {category.name}
@@ -210,7 +229,7 @@ const AddInventoryItem = () => {
                         {(field) => (
                             <div className="flex flex-col space-y-2">
                                 <Label>Item Name</Label>
-                                <Input value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} required />
+                                <Input value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} onBlur={field.handleBlur} required />
                             </div>
                         )}
                     </Field>
@@ -218,14 +237,17 @@ const AddInventoryItem = () => {
                         {(field) => (
                             <div className="flex flex-col space-y-2">
                                 <Label>Quantity</Label>
-                                <Input type="number" min={1} value={field.state.value} onChange={(e) => field.handleChange(parseInt(e.target.value))} required />
+                                <Input type="number" min={1} value={field.state.value} onChange={(e) => field.handleChange(parseInt(e.target.value))} onBlur={field.handleBlur} required />
                             </div>
                         )}
                     </Field>
-                    <Subscribe selector={(state) => [state.values.labId]} children={([labId]) => {
+                    <Subscribe selector={(state) => [state.values.lab, state.isDirty]} children={([labId, isDirty]) => {
 
-                        const lab = labs.find(lab => lab.id == labId)
-                        setFieldValue("currentLocation", lab?.location ?? '')
+                        let lab: Laboratory | undefined
+                        if (isDirty) {
+                            lab = labs.find(lab => lab.id == labId)
+                            setFieldValue("currentLocation", lab?.location ?? '')
+                        }
 
                         return <Field name="currentLocation">
                             {(field) => (
@@ -234,7 +256,7 @@ const AddInventoryItem = () => {
                                         <span>Current Location</span>
                                         {(!field.state.value) && <AlertTriangle size={20} className="text-yellow-400" />}
                                     </Label>
-                                    <Input placeholder="Ex: J-106, W-101" title="Please enter a valid room no (Ex. J-106, W-101)" pattern="^[A-Z]-\d{3}$" value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} required />
+                                    <Input placeholder="Ex: J-106, W-101" title="Please enter a valid room no (Ex. J-106, W-101)" pattern="^[A-Z]-\d{3}$" value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} onBlur={field.handleBlur} required />
                                 </div>
                             )}
                         </Field>
@@ -261,7 +283,7 @@ const AddInventoryItem = () => {
                         {(field) => (
                             <div className="col-span-2 flex flex-col space-y-2">
                                 <Label>Specifications</Label>
-                                <Textarea value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} required />
+                                <Textarea value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} onBlur={field.handleBlur} required />
                             </div>
                         )}
                     </Field>
@@ -272,7 +294,7 @@ const AddInventoryItem = () => {
                         {(field) => (
                             <div className="flex flex-col space-y-2">
                                 <Label>No. of Licenses</Label>
-                                <Input min={0} type="number" value={field.state.value?.toString()} onChange={(e) => field.handleChange(parseInt(e.target.value))} />
+                                <Input min={0} type="number" value={field.state.value?.toString()} onChange={(e) => field.handleChange(parseInt(e.target.value))} onBlur={field.handleBlur} />
                             </div>
                         )}
                     </Field>
@@ -280,7 +302,7 @@ const AddInventoryItem = () => {
                         {(field) => (
                             <div className="flex flex-col space-y-2">
                                 <Label>Nature of License</Label>
-                                <Input value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} />
+                                <Input value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} onBlur={field.handleBlur} />
                             </div>
                         )}
                     </Field>
@@ -288,7 +310,7 @@ const AddInventoryItem = () => {
                         {(field) => (
                             <div className="flex flex-col space-y-2">
                                 <Label>Year of Lease</Label>
-                                <Input type="number" min={2007} value={field.state.value?.toString()} onChange={(e) => field.handleChange(parseInt(e.target.value))} />
+                                <Input type="number" min={2007} value={field.state.value?.toString()} onChange={(e) => field.handleChange(parseInt(e.target.value))} onBlur={field.handleBlur} />
                             </div>
                         )}
                     </Field>
@@ -296,7 +318,7 @@ const AddInventoryItem = () => {
                         {(field) => (
                             <div className="flex flex-col space-y-2">
                                 <Label>Item PO Amount</Label>
-                                <Input type="number" value={field.state.value} onChange={(e) => field.handleChange(parseFloat(e.target.value))} required />
+                                <Input type="number" value={field.state.value} onChange={(e) => field.handleChange(parseFloat(e.target.value))} onBlur={field.handleBlur} required />
                             </div>
                         )}
                     </Field>
@@ -304,7 +326,7 @@ const AddInventoryItem = () => {
                         {(field) => (
                             <div className="flex flex-col space-y-2">
                                 <Label>PO Number</Label>
-                                <Input value={field.state.value} onChange={(e) => field.handleChange(e.target.value.toUpperCase())} required />
+                                <Input value={field.state.value} onChange={(e) => field.handleChange(e.target.value.toUpperCase())} onBlur={field.handleBlur} required />
                             </div>
                         )}
                     </Field>
@@ -312,7 +334,7 @@ const AddInventoryItem = () => {
                         {(field) => (
                             <div className="flex flex-col space-y-2">
                                 <Label>PO Date</Label>
-                                <Input type="date" value={field.state.value?.toISOString().split("T")[0]} onChange={(e) => field.handleChange(e.target.value ? new Date(e.target.value) : null)} required />
+                                <Input type="date" value={field.state.value?.toISOString().split("T")[0]} onChange={(e) => field.handleChange(e.target.value ? new Date(e.target.value) : null)} onBlur={field.handleBlur} required />
                             </div>
                         )}
                     </Field>
@@ -320,7 +342,7 @@ const AddInventoryItem = () => {
                         {(field) => (
                             <div className="flex flex-col space-y-2">
                                 <Label>Funding Source</Label>
-                                <Input value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} required />
+                                <Input value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} onBlur={field.handleBlur} required />
                             </div>
                         )}
                     </Field>
@@ -328,7 +350,7 @@ const AddInventoryItem = () => {
                         {(field) => (
                             <div className="flex flex-col space-y-2">
                                 <Label>Date of Installation</Label>
-                                <Input type="date" value={field.state.value?.toISOString().split("T")[0]} onChange={(e) => field.handleChange(e.target.value ? new Date(e.target.value) : null)} />
+                                <Input type="date" value={field.state.value?.toISOString().split("T")[0]} onChange={(e) => field.handleChange(e.target.value ? new Date(e.target.value) : null)} onBlur={field.handleBlur} />
                             </div>
                         )}
                     </Field>
@@ -336,7 +358,7 @@ const AddInventoryItem = () => {
 
                 <span className="text-2xl text-zinc-600 dark:text-zinc-300">Vendor Information</span>
                 <div className="grid grid-cols-3 gap-4">
-                    <Field name="vendorId">
+                    <Field name="vendor">
                         {(field) => (
                             <div className="flex flex-col space-y-2">
                                 <Label>Vendor</Label>
@@ -355,7 +377,7 @@ const AddInventoryItem = () => {
                             </div>
                         )}
                     </Field>
-                    <Subscribe selector={(state) => ([state.values.vendorId])} children={([vendorId]) => {
+                    <Subscribe selector={(state) => ([state.values.vendor])} children={([vendorId]) => {
                         const vendor = vendors.find(vendor => vendor.id === vendorId)
                         return <>
                             <div className="flex flex-col space-y-2">
@@ -421,7 +443,7 @@ const AddInventoryItem = () => {
                     {(field) => (
                         <div className="flex flex-col space-y-2">
                             <Label>Soft Copy of PO</Label>
-                            <Input placeholder="Paste link here" value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} />
+                            <Input placeholder="Paste link here" value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} onBlur={field.handleBlur} />
                         </div>
                     )}
                 </Field>
@@ -429,7 +451,7 @@ const AddInventoryItem = () => {
                         {(field) => (
                             <div className="flex flex-col space-y-2">
                                 <Label>Soft Copy of Invoice</Label>
-                                <Input placeholder="Paste link here" value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} />
+                                <Input placeholder="Paste link here" value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} onBlur={field.handleBlur} />
                             </div>
                         )}
                     </Field>
@@ -437,7 +459,7 @@ const AddInventoryItem = () => {
                         {(field) => (
                             <div className="flex flex-col space-y-2">
                                 <Label>Soft Copy of NFA</Label>
-                                <Input placeholder="Paste link here" value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} />
+                                <Input placeholder="Paste link here" value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} onBlur={field.handleBlur} />
                             </div>
                         )}
                     </Field>
@@ -445,7 +467,7 @@ const AddInventoryItem = () => {
                         {(field) => (
                             <div className="flex flex-col space-y-2">
                                 <Label>Soft Copy of AMC</Label>
-                                <Input placeholder="Paste link here" value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} />
+                                <Input placeholder="Paste link here" value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} onBlur={field.handleBlur} />
                             </div>
                         )}
                     </Field>
@@ -453,7 +475,7 @@ const AddInventoryItem = () => {
                         {(field) => (
                             <div className="flex flex-col space-y-2">
                                 <Label>Equipment Photo</Label>
-                                <Input placeholder="Paste link here" value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} />
+                                <Input placeholder="Paste link here" value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} onBlur={field.handleBlur} />
                             </div>
                         )}
                     </Field></div>
@@ -461,7 +483,7 @@ const AddInventoryItem = () => {
                     {(field) => (
                         <div className="flex flex-col space-y-2">
                             <Label>Remarks</Label>
-                            <Textarea value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} />
+                            <Textarea value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} onBlur={field.handleBlur} />
                         </div>
                     )}
                 </Field>
@@ -469,7 +491,7 @@ const AddInventoryItem = () => {
                 {/* Submit Button */}
                 <div className="col-span-3 flex justify-end">
                     <Subscribe selector={(state) => [state.canSubmit]}>
-                        {([canSubmit]) => <Button disabled={!canSubmit} form="inventory-form">Add Item</Button>}
+                        {([canSubmit]) => <Button disabled={!canSubmit} form="inventory-form">{editMode ? "Edit Item" : "Add Item"}</Button>}
                     </Subscribe>
                 </div>
             </form>

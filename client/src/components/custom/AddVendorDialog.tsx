@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Select, SelectTrigger, SelectContent, SelectItem } from "@/components/ui/select";
 import api from "@/axiosInterceptor";
-import { Category, Vendor } from "@/types/types";
+import { Category, NewVendorRequest, Vendor } from "@/types/types";
 import { X } from "lucide-react";
 import { useForm } from "@tanstack/react-form";
 import { Textarea } from "../ui/textarea";
@@ -14,28 +14,29 @@ import { Textarea } from "../ui/textarea";
 interface AddVendorDialogProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
-  onAddVendor: (newVendor: Partial<Vendor>) => void;
+  onAddVendor: (newVendor: NewVendorRequest) => void;
+  editInitialData?: Vendor;
 }
 
-const AddVendorDialog = ({ isOpen, setIsOpen, onAddVendor }: AddVendorDialogProps) => {
+const AddVendorDialog = ({ isOpen, setIsOpen, onAddVendor, editInitialData }: AddVendorDialogProps) => {
   const [availableCategories, setAvailableCategories] = useState<Category[]>([]);
 
   const { Field, Subscribe, handleSubmit, reset } = useForm({
     defaultValues: {
-      vendorId: undefined as number | undefined,
-      name: "",
-      pocName: "",
-      phoneNumber: "",
-      email: "",
-      address: "",
-      categories: [] as string[],
-    },
+      vendorId: editInitialData?.vendorId ?? undefined,
+      name: editInitialData?.name ?? "",
+      pocName: editInitialData?.pocName ?? "",
+      phoneNumber: editInitialData?.phoneNumber ?? "",
+      email: editInitialData?.email ?? "",
+      address: editInitialData?.address ?? "",
+      categories: editInitialData?.categories.map((cat) => cat.id) ?? [],
+    } as NewVendorRequest,
     onSubmit: ({ value: data }) => {
       if (!data.vendorId || !data.name || !data.pocName || !data.phoneNumber || !data.email) {
         toast.error("Fields are missing");
         return;
       }
-      onAddVendor(data as unknown as Partial<Vendor>);
+      onAddVendor(data);
       setIsOpen(false);
     },
   });
@@ -55,11 +56,17 @@ const AddVendorDialog = ({ isOpen, setIsOpen, onAddVendor }: AddVendorDialogProp
       }}
     >
       <DialogTrigger asChild>
-        <Button>Add Vendor</Button>
+        {editInitialData ? (
+          <Button variant="outline" className="text-blue-500 hover:text-blue-700 hover:bg-background">
+            Edit Vendor
+          </Button>
+        ) : (
+          <Button>Add Vendor</Button>
+        )}
       </DialogTrigger>
       <DialogContent className="!max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Add New Vendor</DialogTitle>
+          <DialogTitle>{editInitialData ? "Edit Vendor" : "Add Vendor"}</DialogTitle>
         </DialogHeader>
         <form
           className="space-y-4"
@@ -224,7 +231,7 @@ const AddVendorDialog = ({ isOpen, setIsOpen, onAddVendor }: AddVendorDialogProp
                   Cancel
                 </Button>
                 <Button disabled={!canSubmit} form="vendor-add-form">
-                  Add Vendor
+                  {editInitialData ? "Edit Vendor" : "Add Vendor"}
                 </Button>
               </>
             )}

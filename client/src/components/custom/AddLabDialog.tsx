@@ -9,30 +9,40 @@ import { toast } from "sonner";
 import { Label } from "@/components/ui/label"; // Import Label component
 import { useForm } from "@tanstack/react-form";
 
+export interface NewLaboratoryRequest extends Omit<Laboratory, "technicianInCharge" | "facultyInCharge"> {
+  technicianInCharge: string
+  facultyInCharge: string
+}
+
 interface AddLabDialogProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
-  onAddLab: (newLab:  Partial<Laboratory> & {technicianInChargeId: string; facultyInChargeId: string }) => void;
+  onAddLab: (newLab: NewLaboratoryRequest, edit?: boolean) => void;
+  editInitialData?: Laboratory 
 }
 
-const AddLabDialog = ({ isOpen, setIsOpen, onAddLab }: AddLabDialogProps) => {
+const AddLabDialog = ({ isOpen, setIsOpen, onAddLab, editInitialData }: AddLabDialogProps) => {
   const [technicians, setTechnicians] = useState<User[]>([]);
   const [faculties, setFaculties] = useState<User[]>([]);
 
   const { Field, Subscribe, handleSubmit, reset } = useForm({
     defaultValues: {
-      name: "",
-      code: "",
-      location: "",
-      technicianInChargeId: "",
-      facultyInChargeId: "",
-    },
-    onSubmit: ({ value: data }) => {
-      if (!data.name || !data.code || !data.technicianInChargeId || !data.facultyInChargeId) {
+      name: editInitialData?.name ?? "",
+      code: editInitialData?.code ?? "",
+      location: editInitialData?.location ?? "",
+      technicianInCharge: editInitialData?.technicianInCharge?.id ?? "",
+      facultyInCharge: editInitialData?.facultyInCharge?.id ?? "",
+    } as NewLaboratoryRequest,
+    onSubmit: ({ value: data ,formApi: form }) => {
+      if (!data.name || !data.code || !data.location || !data.technicianInCharge || !data.facultyInCharge) {
         toast.error("Some fields are missing");
         return;
       }
-      onAddLab(data);
+
+      const dirtyFields = Object.entries(form.state.fieldMetaBase).filter(([_key, value]) => value.isDirty).map(([key]) => key)
+      
+      if (editInitialData) onAddLab(Object.fromEntries(Object.entries(data).filter(([key]) => dirtyFields.includes(key))) as NewLaboratoryRequest, true)
+      else onAddLab(data)
       setIsOpen(false);
     },
   });
@@ -58,11 +68,11 @@ const AddLabDialog = ({ isOpen, setIsOpen, onAddLab }: AddLabDialogProps) => {
       }}
     >
       <DialogTrigger asChild>
-        <Button>Add Lab</Button>
+        { editInitialData ? <Button variant="outline" className="text-blue-500 hover:text-blue-700 hover:bg-background">Edit Lab</Button> : <Button>Add Lab</Button> }
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add New Lab</DialogTitle>
+          <DialogTitle>{editInitialData ? "Edit Lab" : "Add New Lab"}</DialogTitle>
         </DialogHeader>
         <form
           className="space-y-4"
@@ -94,6 +104,7 @@ const AddLabDialog = ({ isOpen, setIsOpen, onAddLab }: AddLabDialogProps) => {
                   <Input
                     id="lab-code"
                     required
+                    disabled={!!editInitialData}
                     maxLength={4}
                     value={state.value}
                     onChange={(e) => handleChange(e.target.value.toUpperCase())}
@@ -110,7 +121,7 @@ const AddLabDialog = ({ isOpen, setIsOpen, onAddLab }: AddLabDialogProps) => {
                     id="lab-location"
                     required
                     pattern="^[A-Z]-\d{3}[A-Z]?$"
-                    title="Location of the lab (Ex. J-106, W-101)" 
+                    title="Location of the lab (Ex. J-106, W-101)"
                     value={state.value}
                     onChange={(e) => handleChange(e.target.value.toUpperCase())}
                     onBlur={handleBlur}
@@ -119,7 +130,7 @@ const AddLabDialog = ({ isOpen, setIsOpen, onAddLab }: AddLabDialogProps) => {
               )}
             </Field>
           </div>
-          <Field name="technicianInChargeId">
+          <Field name="technicianInCharge">
             {({ state, handleChange }) => (
               <>
                 <Label htmlFor="technician-in-charge">Technician In Charge</Label>
@@ -131,7 +142,7 @@ const AddLabDialog = ({ isOpen, setIsOpen, onAddLab }: AddLabDialogProps) => {
                     <span>
                       {state.value
                         ? technicians.find((tech) => tech.id === state.value)
-                            ?.name
+                          ?.name
                         : "Select Technician In Charge"}
                     </span>
                   </SelectTrigger>
@@ -146,7 +157,7 @@ const AddLabDialog = ({ isOpen, setIsOpen, onAddLab }: AddLabDialogProps) => {
               </>
             )}
           </Field>
-          <Field name="facultyInChargeId">
+          <Field name="facultyInCharge">
             {({ state, handleChange }) => (
               <>
                 <Label htmlFor="faculty-in-charge">Faculty In Charge</Label>
@@ -158,7 +169,7 @@ const AddLabDialog = ({ isOpen, setIsOpen, onAddLab }: AddLabDialogProps) => {
                     <span>
                       {state.value
                         ? faculties.find((faculty) => faculty.id === state.value)
-                            ?.name
+                          ?.name
                         : "Select Faculty In Charge"}
                     </span>
                   </SelectTrigger>
@@ -186,7 +197,7 @@ const AddLabDialog = ({ isOpen, setIsOpen, onAddLab }: AddLabDialogProps) => {
             selector={(state) => [state.canSubmit]}
             children={([canSubmit]) => (
               <Button disabled={!canSubmit} form="lab-add-form">
-                Add Lab
+                { editInitialData ? "Edit Lab" : "Add Lab" }
               </Button>
             )}
           />

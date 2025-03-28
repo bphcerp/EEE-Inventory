@@ -23,7 +23,7 @@ router.get('/labs', getUserLabs);
 router.post('/', addUser);
 
 // PUT /users Route to modify an existing user
-router.put('/:id', modifyUser);
+router.patch('/:id', modifyUser);
 
 // DELETE /users Route to delete an existing user
 router.delete('/:id', deleteUser);

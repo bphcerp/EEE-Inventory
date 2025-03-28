@@ -46,7 +46,7 @@ interface DataTableProps<T> {
     // If mainSearchColumn is set, the meta filter options if set are ignored as there is a global filter already present.
     mainSearchColumn?: keyof T;
     initialState?: InitialTableState
-    setSelected?: (selected: Array<T>) => void;
+    setSelected?: (selected: T[]) => void;
     additionalButtons?: ReactNode
 }
 
@@ -175,7 +175,7 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, se
             ...initialState,
             pagination: {
                 pageSize: 5
-            }
+            },
         },
         enableColumnPinning: true,
         onSortingChange: setSorting,
@@ -197,8 +197,8 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, se
     })
 
     useEffect(() => {
-        if (setSelected) setSelected(Object.keys(table.getState().rowSelection).map(row => table.getRow(row).original))
-    }, [table.getState().rowSelection])
+        if (setSelected) setSelected(Object.keys(rowSelection).map(row => table.getRow(row).original))
+    }, [rowSelection])
 
     const renderFilter = (column: Column<T>) => {
         const filterType = column.columnDef.meta?.filterType;
@@ -362,6 +362,13 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, se
                 />}
                 <div className="flex items-center space-x-2">
                     {additionalButtons}
+                    <Button onClick={() => {
+                        // table.reset() doesn't work
+                        table.resetColumnFilters()
+                        table.resetColumnVisibility()
+                        table.resetGlobalFilter()
+                        table.resetRowSelection()
+                    }}>Reset</Button>
                     <div>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -509,21 +516,21 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, se
                             ))
                         }
                         {
-                            columns.some(column => column.meta?.calculateSum)? <TableRow>
-                            <TableCell className="z-2 sticky left-0 bg-background w-[20px]">
-                                {/* Empty cell for the checkbox column */}
-                            </TableCell>
-                            {table.getVisibleLeafColumns().map((column) => (
-                                <TableCell
-                                    key={column.id}
-                                    className={`${column.getIsPinned() ? 'sticky left-0 bg-background' : ''} font-bold text-center`}
-                                >
-                                    {column.columnDef.meta?.calculateSum
-                                        ? column.columnDef.meta.calculateSum(table.getRowModel().rows.map(row => row.original))
-                                        : <></>}
+                            columns.some(column => column.meta?.calculateSum) ? <TableRow>
+                                <TableCell className="z-2 sticky left-0 bg-background w-[20px]">
+                                    {/* Empty cell for the checkbox column */}
                                 </TableCell>
-                            ))}
-                        </TableRow> : <></>
+                                {table.getVisibleLeafColumns().map((column) => (
+                                    <TableCell
+                                        key={column.id}
+                                        className={`${column.getIsPinned() ? 'sticky left-0 bg-background' : ''} font-bold text-center`}
+                                    >
+                                        {column.columnDef.meta?.calculateSum
+                                            ? column.columnDef.meta.calculateSum(table.getRowModel().rows.map(row => row.original))
+                                            : <></>}
+                                    </TableCell>
+                                ))}
+                            </TableRow> : <></>
                         }
                     </TableBody> : <div>
                         <div className="flex flex-col items-center justify-center">

@@ -3,7 +3,7 @@
  * @description This file contains the entity definitions for the User, Laboratory, and InventoryItem entities used in the EEE-Inventory system.
  */
 
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinTable, ManyToMany, Generated, OneToOne, JoinColumn, OneToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinTable, ManyToMany, Generated, OneToOne, JoinColumn, OneToMany, CreateDateColumn, UpdateDateColumn, DeleteDateColumn } from 'typeorm';
 
 // User entity
 @Entity()
@@ -14,8 +14,7 @@ export class User {
     @Column("text", { unique: true })
     name: string;
 
-    //Email is nullable for excel data entry.
-    @Column({ type: "text", unique: true, nullable: true })
+    @Column({ type: "text", unique: true })
     email: string;
 
     @Column({ type: "enum", enum: [0, 1] })
@@ -23,6 +22,12 @@ export class User {
 
     @Column({ type: "enum", enum: ["Admin", "Technician", "Faculty"]})
     role: "Admin" | "Technician" | "Faculty"; // 0 for read (non-Admin), 1 for read and write (Admin)
+    
+    @CreateDateColumn()
+    createdAt!: Date;
+  
+    @UpdateDateColumn()
+    updatedAt!: Date;
 }
 
 // Laboratory entity
@@ -45,6 +50,12 @@ export class Laboratory {
 
     @ManyToOne(() => User)
     facultyInCharge: User
+
+    @CreateDateColumn()
+    createdAt!: Date;
+  
+    @UpdateDateColumn()
+    updatedAt!: Date;
 }
 
 //Category Entity
@@ -61,6 +72,12 @@ export class Category {
 
     @Column({ type: "enum", enum: ['Vendor', 'Inventory'] })
     type: 'Vendor' | 'Inventory'
+
+    @CreateDateColumn()
+    createdAt!: Date;
+  
+    @UpdateDateColumn()
+    updatedAt!: Date;
 }
 
 //Vendor
@@ -90,6 +107,12 @@ export class Vendor {
     @ManyToMany(() => Category)
     @JoinTable()
     categories: Category[]
+
+    @CreateDateColumn()
+    createdAt!: Date;
+  
+    @UpdateDateColumn()
+    updatedAt!: Date;  
 } 
 
 // AccessToken entity
@@ -104,6 +127,12 @@ export class AccessToken {
 
     @Column("timestamp with time zone")
     tokenExpiry: Date;
+
+    @CreateDateColumn()
+    createdAt!: Date;
+  
+    @UpdateDateColumn()
+    updatedAt!: Date;
 }
 
 // InventoryItem entity
@@ -205,4 +234,10 @@ export class InventoryItem {
 
     @Column("text", { nullable: true })
     remarks?: string; // Additional remarks (if applicable)
+
+    @CreateDateColumn()
+    createdAt!: Date;
+  
+    @UpdateDateColumn()
+    updatedAt!: Date;
 }

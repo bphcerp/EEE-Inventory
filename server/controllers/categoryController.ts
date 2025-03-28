@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { categoryRepository } from '../repositories/repositories';
+import { categoryRepository, itemRepository } from '../repositories/repositories';
 
 
 export const getAllCategories = async (req: Request, res: Response) => {
@@ -43,32 +43,52 @@ export const createCategory = async (req: Request, res: Response) => {
     }
 };
 
-export const updateCategory = async (req: Request, res: Response) => {
+// Update Category Controller
+export const patchCategory = async (req: Request, res: Response) => {
     try {
-        const category = await categoryRepository.findOneBy({ id: req.params.id });
+        const { id } = req.params;
+        const updatedData = req.body;
+
+
+        // Check if the category exists
+        const category = await categoryRepository.findOneBy({ id });
         if (!category) {
-            res.status(404).json({ error: 'Category not found' });
-            return
+            res.status(404).json({ message: 'Category not found' });
+            return;
         }
-        categoryRepository.merge(category, req.body);
-        const updatedCategory = await categoryRepository.save(category);
-        res.json(updatedCategory);
+
+        if (await itemRepository.findOneBy({ itemCategory : { id } })){
+            res.status(403).json({ message: 'Cannot update, this category has inventory items linked to it' });
+            return;
+        }
+
+        // Update the category
+        const updatedCategory = await categoryRepository.save(updatedData);
+        res.status(200).json({ message: 'Category updated successfully', category: updatedCategory });
     } catch (error) {
-        console.error(error)
-        res.status(500).json({ error: 'Failed to update category' });
+        res.status(500).json({ message: 'Error updating category', error });
+        console.error(error);
     }
 };
 
+// Delete Category Controller
 export const deleteCategory = async (req: Request, res: Response) => {
     try {
-        const result = await categoryRepository.delete(req.params.id);
-        if (result.affected === 0) {
-            res.status(404).json({ error: 'Category not found' });
-            return
+        const { id } = req.params;
+
+        // Check if the category exists
+        const category = await categoryRepository.findOneBy({ id });
+        if (!category) {
+            res.status(404).json({ message: 'Category not found' });
+            return;
         }
-        res.status(204).send();
+
+        // Delete the category
+        await categoryRepository.delete(id);
+
+        res.status(204).json({ message: 'Category deleted successfully' });
     } catch (error) {
-        console.error(error)
-        res.status(500).json({ error: 'Failed to delete category' });
+        res.status(500).json({ message: (error as any)?.code === '23503' ? 'Cannot delete, this category has inventory items linked to it' : 'Error deleting category', error });
+        console.error(error);
     }
 };

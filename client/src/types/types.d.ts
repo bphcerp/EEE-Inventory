@@ -1,9 +1,11 @@
 export interface User {
     id: string;
     name: string;
-    email?: string;
+    email: string;
     permissions: 0 | 1;
     role: "Admin" | "Technician" | "Faculty";
+    createdAt: Date;
+    updatedAt: Date;
 }
 
 export interface SheetInfo {
@@ -20,6 +22,8 @@ export interface Laboratory {
     location?: string
     technicianInCharge?: User;
     facultyInCharge?: User;
+    createdAt: Date;
+    updatedAt: Date;
 }
 
 export interface Vendor {
@@ -31,6 +35,8 @@ export interface Vendor {
     phoneNumber: string;
     email: string;
     categories: Category[]
+    createdAt: Date;
+    updatedAt: Date;
 }
 
 export interface Category {
@@ -38,13 +44,15 @@ export interface Category {
     name: string;
     code: string;
     type: 'Vendor' | 'Inventory'
+    createdAt: Date;
+    updatedAt: Date;
 }
 
 export interface InventoryItem {
     id: string;
     serialNumber: int
     lab: Laboratory;
-    itemCategory: string;
+    itemCategory: Category;
     itemName: string;
     specifications: string;
     quantity: number;
@@ -72,4 +80,19 @@ export interface InventoryItem {
     status?: "Working" | "Not Working" | "Under Repair" | null
     equipmentPhoto?: string;
     remarks?: string;
+    createdAt: Date;
+    updatedAt: Date;
 }
+
+export interface NewLaboratoryRequest extends Omit<Laboratory, "technicianInCharge" | "facultyInCharge" | "createdAt" | "updatedAt"> {
+    technicianInCharge: string;
+    facultyInCharge: string;
+}
+
+export type NewUserRequest = Omit<User, "id" | "createdAt" | "updatedAt">
+
+export interface NewVendorRequest extends Omit<Vendor, "id" | "categories" | "createdAt" | "updatedAt"> {
+    categories: string[]; // Array of category IDs
+}
+
+export type NewCategoryRequest = Omit<Category, "id" | "createdAt" | "updatedAt">

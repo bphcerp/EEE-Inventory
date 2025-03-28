@@ -4,7 +4,7 @@
  */
 
 import { Router } from 'express';
-import { getAllLabs, addLab } from '../controllers/labController';
+import { getAllLabs, addLab, patchLab, deleteLab } from '../controllers/labController';
 import checkAdminMiddlewareforGET from '../middleware/checkAdminMiddlewareforGet';
 
 const router = Router();
@@ -14,5 +14,11 @@ router.get('/',checkAdminMiddlewareforGET, getAllLabs);
 
 // POST /labs Route to add a new lab
 router.post('/', addLab);
+
+// PATCH /labs/:id Route to update a lab
+router.patch('/:id', patchLab);
+
+// DELETE /labs/:id Route to delete a lab
+router.delete('/:id', deleteLab);
 
 export default router;

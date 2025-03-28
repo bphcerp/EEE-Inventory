@@ -8,24 +8,24 @@ import { Label } from "../ui/label";
 import { toast } from "sonner";
 import { ShieldAlert } from "lucide-react";
 import { DialogDescription } from "@radix-ui/react-dialog";
-import { User } from "@/types/types";
+import { NewUserRequest, User } from "@/types/types";
 
 interface AddUserDialogProps {
-	onAddUser: (user: Partial<User> & { labIds: string[] }) => void
+	onAddUser: (user: NewUserRequest) => void
 	isOpen: boolean
 	setIsOpen: Dispatch<SetStateAction<boolean>>
+	editInitialData?: User
 }
 
-const AddUserDialog = ({ onAddUser, isOpen, setIsOpen }: AddUserDialogProps) => {
+const AddUserDialog = ({ onAddUser, isOpen, setIsOpen, editInitialData }: AddUserDialogProps) => {
 
 	const { Field, Subscribe, state, handleSubmit, reset } = useForm({
 		defaultValues: {
-			name: '',
-			email: '',
-			permissions: 0 as 0 | 1,
-			role: '' as 'Admin' | 'Technician' | 'Faculty',
-			labIds: [] as string[]
-		},
+			name: editInitialData?.name ?? '',
+			email: editInitialData?.email.split("@")[0] ?? '',
+			permissions: editInitialData?.permissions ?? 0,
+			role: editInitialData?.role ?? '',
+		} as NewUserRequest,
 		onSubmit: ({ value: data }) => {
 			if (!data.role){
 				toast.error('Role not assigned to user')
@@ -44,12 +44,18 @@ const AddUserDialog = ({ onAddUser, isOpen, setIsOpen }: AddUserDialogProps) => 
 			reset()
 		}}>
 			<DialogTrigger asChild>
-				<Button>Add User</Button>
+				{editInitialData ? (
+					<Button variant="outline" className="text-blue-500 hover:text-blue-700 hover:bg-background">
+						Edit User
+					</Button>
+				) : (
+					<Button>Add User</Button>
+				)}
 			</DialogTrigger>
 			<DialogContent>
 				<DialogDescription hidden>Dialog to add user</DialogDescription>
 				<DialogHeader>
-					<DialogTitle>Add User</DialogTitle>
+					<DialogTitle>{editInitialData ? "Edit User" : "Add User"}</DialogTitle>
 				</DialogHeader>
 				<form className="space-y-4" id="user-add-form" onSubmit={(e) => {
 					e.preventDefault()
@@ -133,7 +139,9 @@ const AddUserDialog = ({ onAddUser, isOpen, setIsOpen }: AddUserDialogProps) => 
 				<DialogFooter>
 					<Subscribe
 						selector={(state) => [state.canSubmit]}
-						children={([canSubmit]) => <Button disabled={!canSubmit} form="user-add-form">Add User</Button>}
+						children={([canSubmit]) => <Button disabled={!canSubmit} form="user-add-form">
+							{editInitialData ? "Edit User" : "Add User"}
+						</Button>}
 					/>
 				</DialogFooter>
 			</DialogContent>

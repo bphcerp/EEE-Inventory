@@ -10,6 +10,8 @@ import { Link, useNavigate } from "react-router";
 import { InventoryItem } from "@/types/types";
 import { TransferConfirmationDialog } from "@/components/custom/TransferConfirmationDialog";
 import VendorDetailsDialog from "@/components/custom/VendorDetailsDialog";
+import DeleteConfirmationDialog from "@/components/custom/DeleteConfirmationDialog";
+import { AxiosError } from "axios";
 
 export const Inventory = () => {
     const userPermissions = useUserPermissions();
@@ -42,34 +44,31 @@ export const Inventory = () => {
         { accessorKey: 'itemCategory.name', header: 'Category', meta: { filterType: 'dropdown' as TableFilterType } },
         { accessorKey: 'poNumber', header: 'PO Number', meta: { filterType: 'search' as TableFilterType } },
 
+        // Unpinned columns
+        { accessorKey: 'createdAt', header: 'Created At', cell: ({ getValue }) => new Date(getValue() as string).toLocaleString(), enableColumnFilter: false },
+        { accessorKey: 'updatedAt', header: 'Updated At', cell: ({ getValue }) => new Date(getValue() as string).toLocaleString(), enableColumnFilter: false },
         { accessorFn: (row) => row.lab.name ?? "NA", header: 'Laboratory', meta: { filterType: 'multiselect' as TableFilterType } },
         { accessorKey: 'labInchargeAtPurchase', header: 'Lab Incharge at Purchase' },
         { accessorKey: 'labTechnicianAtPurchase', header: 'Lab Technician at Purchase' },
-
-        // Unpinned columns
-        { accessorFn: (row) => Number(row.poAmount) , header: 'PO Amount', cell: ({ getValue }) => (getValue() as number).toLocaleString('en-IN', { style: "currency", currency: "INR" }), meta: { filterType: 'number-range' as TableFilterType } },
+        { accessorFn: (row) => Number(row.poAmount), header: 'PO Amount', cell: ({ getValue }) => (getValue() as number).toLocaleString('en-IN', { style: "currency", currency: "INR" }), meta: { filterType: 'number-range' as TableFilterType } },
         { accessorKey: 'poDate', header: 'PO Date', meta: { filterType: 'date-range' as TableFilterType } },
         { accessorKey: 'currentLocation', header: 'Current Location', meta: { filterType: 'dropdown' as TableFilterType } },
-        { accessorFn: (row) => row.status ?? "Not Provided" , header: 'Status', meta: { filterType: 'dropdown' as TableFilterType } },
+        { accessorFn: (row) => row.status ?? "Not Provided", header: 'Status', meta: { filterType: 'dropdown' as TableFilterType } },
         { accessorKey: 'specifications', header: 'Specifications' },
         { accessorKey: 'noOfLicenses', header: 'No of Licenses' },
         { accessorKey: 'natureOfLicense', header: 'Nature of License' },
         { accessorKey: 'yearOfLease', header: 'Year of Lease', meta: { filterType: 'dropdown' as TableFilterType } },
-        { accessorKey: 'fundingSource', header: 'Funding Source',meta: { filterType: 'dropdown' as TableFilterType } },
+        { accessorKey: 'fundingSource', header: 'Funding Source', meta: { filterType: 'dropdown' as TableFilterType } },
         { accessorKey: 'dateOfInstallation', header: 'Date of Installation', meta: { filterType: 'date-range' as TableFilterType } },
-        { 
-            accessorKey: 'vendor.name', 
-            header: 'Vendor Name', 
-            cell: ({ row,getValue }) => (
+        {
+            accessorKey: 'vendor.name',
+            header: 'Vendor Name',
+            cell: ({ row, getValue }) => (
                 <Button variant="link" onClick={() => handleVendorClick(row.original.vendor)}>
                     {getValue() as string}
                 </Button>
-            ) 
+            )
         },
-        // { accessorKey: 'vendor.address', header: 'Vendor Address' },
-        // { accessorKey: 'vendor.pocName', header: 'Vendor POC Name' },
-        // { accessorKey: 'vendor.phoneNumber', header: 'Vendor POC Phone Number' },
-        // { accessorKey: 'vendor.email', header: 'Vendor POC Email ID' },
         { accessorKey: 'warrantyFrom', header: 'Warranty From', meta: { filterType: 'date-range' as TableFilterType } },
         { accessorKey: 'warrantyTo', header: 'Warranty To', meta: { filterType: 'date-range' as TableFilterType } },
         { accessorKey: 'amcFrom', header: 'AMC From', meta: { filterType: 'date-range' as TableFilterType } },
@@ -82,8 +81,7 @@ export const Inventory = () => {
         { accessorKey: 'remarks', header: 'Remarks' },
     ];
 
-    useEffect(() => {
-        const timer = setTimeout(() => setLoading(true), 2000);
+    const fetchData = () => {
         api('/inventory')
             .then(({ data }) => setInventoryData(data))
             .catch(error => {
@@ -92,8 +90,25 @@ export const Inventory = () => {
             })
             .finally(() => {
                 setLoading(false);
-                clearTimeout(timer);
             });
+    }
+
+    const handleDelete = () => {
+        if (selectedItems.length !== 1) return;
+
+        api.delete(`/inventory/${selectedItems[0].id}`)
+            .then(() => {
+                fetchData();
+                toast.success("Item deleted successfully");
+            })
+            .catch((err) => {
+                console.error({ message: "Error deleting item", err });
+                toast.error(((err as AxiosError).response?.data as any).message ?? "Error deleting item");
+            });
+    };
+
+    useEffect(() => {
+        fetchData()
     }, []);
 
     return (
@@ -114,19 +129,42 @@ export const Inventory = () => {
                             Transfer
                         </Button>
                     ) : <></>}
-                    {userPermissions ? <Button onClick={() => navigate('/add-item')}>Add Item</Button> : <></>}
+                    {selectedItems.length === 1 && (
+                        <DeleteConfirmationDialog onConfirm={handleDelete} />
+                    )}
+                    {userPermissions ?
+                        selectedItems.length === 1 ? <Button variant="outline" onClick={() => {
+                            const item = selectedItems[0];
+                            ["createdAt", "updatedAt", "poDate", "dateOfInstallation", "warrantyFrom", "warrantyTo", "amcFrom", "amcTo"].forEach((field) => {
+                                if (item[field as keyof InventoryItem]) {
+                                    (item[field as keyof InventoryItem] as Date) = new Date(item[field as keyof InventoryItem]);
+                                }
+                            });
+                            ["itemCategory","lab","vendor"].forEach((field) => {
+                                if (item[field as keyof InventoryItem]) {
+                                    (item[field as keyof InventoryItem] as string) = item[field as 'lab' | 'itemCategory' | 'vendor'].id
+                                }
+                            });
+
+                            navigate('/add-item', {
+                                state : {
+                                    toBeEditedItem : item
+                                }
+                            })}}
+                            className="text-blue-500 hover:text-blue-700 hover:bg-background">Edit Item</Button>
+                            : <Button onClick={() => navigate('/add-item')}>Add Item</Button> : <></>}
                 </>} />
             )}
-            <TransferConfirmationDialog 
-                open={isTransferDialogOpen} 
-                onClose={() => setTransferDialogOpen(false)} 
-                selectedItems={selectedItems} 
-                onTransferSuccess={handleTransferSuccess} 
+            <TransferConfirmationDialog
+                open={isTransferDialogOpen}
+                onClose={() => setTransferDialogOpen(false)}
+                selectedItems={selectedItems}
+                onTransferSuccess={handleTransferSuccess}
             />
-            <VendorDetailsDialog 
-                open={isVendorDialogOpen} 
-                onClose={() => setVendorDialogOpen(false)} 
-                vendorDetails={vendorDetails} 
+            <VendorDetailsDialog
+                open={isVendorDialogOpen}
+                onClose={() => setVendorDialogOpen(false)}
+                vendorDetails={vendorDetails}
             />
         </div>
     );

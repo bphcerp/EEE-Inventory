@@ -71,7 +71,7 @@ const parseDate = (date: any | Date) => {
 
     if (date instanceof Date) return date
     if (!isNaN(new Date(date.toString()).getTime())) return new Date(date.toString())
-    
+
     // For those edge cases where there are dots or slashes instead of dashes
     const parsedDate = parser.fromAny(date.toString())
     return parsedDate.invalid ? null : parsedDate
@@ -96,9 +96,9 @@ async function mapToInventoryItemAndSave(data: any[], selectedLab: Laboratory, c
         itemName: data[columnIndexMap["item name"]],
         specifications: data[columnIndexMap["specification(s)"]],
         quantity: Number(data[columnIndexMap["quantity"]]),
-        noOfLicenses: Number(data[columnIndexMap["no of licenses"]]) ? Number(data[columnIndexMap["no of licenses"]]):  undefined,
+        noOfLicenses: Number(data[columnIndexMap["no of licenses"]]) ? Number(data[columnIndexMap["no of licenses"]]) : undefined,
         natureOfLicense: data[columnIndexMap["nature of license"]] !== "NA" ? data[columnIndexMap["nature of license"]] : undefined,
-        yearOfLease: Number(data[columnIndexMap["year of lease"]]) ? Number(data[columnIndexMap["year of lease"]]) :  undefined,
+        yearOfLease: Number(data[columnIndexMap["year of lease"]]) ? Number(data[columnIndexMap["year of lease"]]) : undefined,
         poAmount: !isNaN(Number(data[columnIndexMap["item amount in po (inr)"]]))
             ? typeof data[columnIndexMap["item amount in po (inr)"]] === "string"
                 ? parseFloat(data[columnIndexMap["item amount in po (inr)"]].replace(/,/g, ""))
@@ -312,7 +312,7 @@ export const addInventoryItem = async (req: Request, res: Response) => {
             amcTo: req.body.amcTo ? new Date(req.body.amcTo) : null
         };
 
-        const lab = await labRepository.findOneBy({ id: req.body.labId })
+        const lab = await labRepository.findOneBy({ id: req.body.lab })
         const category = await categoryRepository.findOneBy({ id: req.body.itemCategory })
         const lastItemNumber = (await itemRepository.query(`
             SELECT COALESCE(MAX("serialNumber")::int, 0) AS count 
@@ -323,8 +323,6 @@ export const addInventoryItem = async (req: Request, res: Response) => {
         if (req.body.quantity == 1) {
             const equipmentID = `BITS/EEE/${lab!.code}/${category!.code}/${lastItemNumber}`
             const newItem = itemRepository.create(formData as Object);
-            newItem.lab = req.body.labId ? { id: req.body.labId } as any : undefined
-            newItem.vendor = req.body.vendorId ? { id: req.body.vendorId } as any : undefined
             newItem.equipmentID = equipmentID
             newItem.serialNumber = lastItemNumber
             result = await itemRepository.save(newItem);
@@ -333,8 +331,6 @@ export const addInventoryItem = async (req: Request, res: Response) => {
             const baseEquipmentID = `BITS/EEE/${lab!.code}/${category!.code}/${lastItemNumber}`;
             const items = Array.from({ length: req.body.quantity }, (_, i) => ({
                 ...formData,
-                lab: req.body.labId ? { id: req.body.labId } as any : undefined,
-                vendor: req.body.vendorId ? { id: req.body.vendorId } as any : undefined,
                 equipmentID: `${baseEquipmentID}-${i + 1}`,
                 serialNumber: lastItemNumber
             }));
@@ -347,6 +343,64 @@ export const addInventoryItem = async (req: Request, res: Response) => {
     }
 };
 
+// Update Item Controller
+export const patchInventoryItem = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const updatedData: Partial<InventoryItem> = req.body;
+
+        // Check if the lab exists
+        const item = await itemRepository.findOne({ where: { id }, relations: ['lab'] });
+        if (!item) {
+            res.status(404).json({ message: 'Item not found' });
+            return;
+        }
+
+        let equipmentID = item.equipmentID
+        let categoryCode: string
+
+
+        if (updatedData.itemCategory) {
+            const category = await categoryRepository.findOneBy({ id: req.body.itemCategory })
+            const equipmentIDSplit = equipmentID.split('/')
+
+            // The category code is changed to the updated one
+            equipmentIDSplit[3] = category!.code
+            categoryCode = category!.code
+            equipmentID = equipmentIDSplit.join('/')
+        }
+        if (updatedData.lab) {
+            res.status(403).send({ message: "Lab cannot be updated for a item once set. Please delete the record and enter again." })
+            return
+        }
+
+        updatedData.equipmentID = equipmentID
+
+        console.log(updatedData)
+
+        // Update
+        if (item.quantity > 1) {
+            const items = await itemRepository.findBy({ serialNumber: item.serialNumber, lab: { id: item.lab.id } })
+            const newItems: InventoryItem[] = items.map((item) => {
+                if (updatedData.itemCategory) {
+                    const equipmentIDSplit = item.equipmentID.split('/')
+
+                    // The category code is changed to the updated one
+                    equipmentIDSplit[3] = categoryCode
+                    equipmentID = equipmentIDSplit.join('/')
+                    return { ...item, ...updatedData, equipmentID }
+                }
+                return { ...item, ...updatedData }
+            })
+            await itemRepository.save(newItems)
+        }
+        else await itemRepository.save(updatedData);
+        res.status(200).json({ message: 'Item(s) updated successfully' });
+    } catch (error) {
+        res.status(500).json({ message: 'Error updating item(s)', error });
+        console.error(error);
+    }
+};
 
 
 // Get serial number for a to be added item (no of items for that lab + 1)
@@ -455,5 +509,27 @@ export const getImportantDates = async (req: Request, res: Response) => {
     } catch (error) {
         console.error("Error fetching important dates:", error);
         res.status(500).json({ message: "Error fetching important dates", error });
+    }
+};
+
+// Delete Inventory Item Controller
+export const deleteItem = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+
+        // Check if the item exists
+        const item = await itemRepository.findOne({ where : { id } , relations : ['lab'] });
+        if (!item) {
+            res.status(404).json({ message: 'Inventory item not found' });
+            return;
+        }
+
+        // Delete the item
+        item.quantity > 1 ? await itemRepository.delete({ serialNumber: item.serialNumber, lab: { id: item.lab.id } }) : await itemRepository.delete(id);
+
+        res.status(204).json({ message: 'Laboratory deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ message: (error as any)?.code === '23503' ? ' Cannot delete, this lab has inventory' : 'Error deleting laboratory', error });
+        console.error(error);
     }
 };
