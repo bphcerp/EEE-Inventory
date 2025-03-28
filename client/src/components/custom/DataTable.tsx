@@ -171,12 +171,7 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, se
             ...columnDef,
             ...(columnDef.meta ? columnDef.meta.filterType === 'date-range' ? { filterFn: isWithinRange } : columnDef.meta.filterType === 'multiselect' ? { filterFn: multiFilterFn } : columnDef.meta.filterType === 'number-range' ? { filterFn: isWithinRangeNumber } : {} : {})
         })),
-        initialState: {
-            ...initialState,
-            pagination: {
-                pageSize: 5
-            },
-        },
+        initialState,
         enableColumnPinning: true,
         onSortingChange: setSorting,
         onColumnFiltersChange: setColumnFilters,
@@ -481,7 +476,7 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, se
                                     </TableCell>
                                     {row.getVisibleCells().filter((cell) => cell.column.getIsPinned()).map((cell) => (
                                         <TableCell
-                                            className={`min-w-44 sticky left-0 bg-background ${(cell.column.columnDef.meta && ['date-range', 'number-range'].includes(cell.column.columnDef.meta.filterType ?? '')) ? 'text-center' : ''}`}
+                                            className={`${cell.column.id === 'S.No' ? 'min-w-2' : 'min-w-52'} sticky left-0 bg-background ${(cell.column.columnDef.meta && ['date-range', 'number-range'].includes(cell.column.columnDef.meta.filterType ?? '')) ? 'text-center' : ''}`}
                                             style={{ left: cellLeftMap[cell.column.id] }}
                                             key={cell.id}
                                             title={cell.getValue() && (cell.getValue() as any).toString().length > 20 ? (cell.getValue() as any).toString() : undefined}
@@ -498,7 +493,7 @@ export function DataTable<T>({ data, columns, mainSearchColumn, initialState, se
                                     ))}
                                     {row.getVisibleCells().filter((cell) => !cell.column.getIsPinned()).map((cell) => (
                                         <TableCell
-                                            className={`min-w-36  ${(cell.column.columnDef.meta && ['date-range', 'number-range'].includes(cell.column.columnDef.meta.filterType ?? '')) ? 'text-center' : ''}`}
+                                            className={`${cell.column.id === 'S.No' ? 'min-w-2' : 'min-w-52'}  ${(cell.column.columnDef.meta && ['date-range', 'number-range'].includes(cell.column.columnDef.meta.filterType ?? '')) ? 'text-center' : ''}`}
                                             key={cell.id}
                                             title={cell.getValue() && (cell.getValue() as any).toString().length > 20 ? (cell.getValue() as any).toString() : undefined}
                                         >

@@ -4,14 +4,14 @@
 */
 
 import { Request, Response } from 'express';
-import { labRepository } from '../repositories/repositories';
+import { itemRepository, labRepository } from '../repositories/repositories';
 import { Laboratory } from '../entities/entities';
 
 // Get All Laboratories Controller
 export const getAllLabs = async (_req: Request, res: Response) => {
     try {
         const labs = await labRepository.find({
-            relations: ['technicianInCharge','facultyInCharge']
+            relations: ['technicianInCharge', 'facultyInCharge']
         });
         res.status(200).json(labs);
     } catch (error) {
@@ -59,6 +59,11 @@ export const patchLab = async (req: Request, res: Response) => {
         const lab = await labRepository.findOneBy({ id });
         if (!lab) {
             res.status(404).json({ message: 'Laboratory not found' });
+            return;
+        }
+
+        if (updatedData.code && await itemRepository.findOneBy({ lab: { id } })) {
+            res.status(403).json({ message: 'Cannot update lab code, this lab has inventory' });
             return;
         }
 

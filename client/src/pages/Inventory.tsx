@@ -38,7 +38,8 @@ export const Inventory = () => {
 
     const columns: ColumnDef<InventoryItem>[] = [
 
-        // Three pinned columns: Item Name, Category, PO Number
+        // Three pinned columns: EquipmentID, Item Name, Category, PO Number
+        { accessorFn:  () => 'S.No', header: 'S.No', cell: ({row}) => row.index + 1 },
         { accessorKey: 'equipmentID', header: 'Equipment ID', meta: { filterType: 'search' as TableFilterType } },
         { accessorKey: 'itemName', header: 'Item Name' },
         { accessorKey: 'itemCategory.name', header: 'Category', meta: { filterType: 'dropdown' as TableFilterType } },
@@ -121,7 +122,7 @@ export const Inventory = () => {
             ) : (
                 <DataTable<InventoryItem> data={inventoryData} columns={columns} mainSearchColumn="itemName" initialState={{
                     columnPinning: {
-                        left: ['equipmentID', 'itemName', 'itemCategory', 'poNumber']
+                        left: ['S.No','equipmentID', 'itemName', 'itemCategory', 'poNumber']
                     }
                 }} setSelected={setSelectedItems} additionalButtons={<>
                     {selectedItems.length ? (
