@@ -269,13 +269,13 @@ export const exportData = async (req: Request, res: Response): Promise<void> => 
                     const cellValue = item[col as keyof InventoryItem];
                     if (col === 'lab') return (cellValue as Laboratory).name
                     else if (col === 'itemCategory') return (cellValue as Category).name
-                    else if (col === 'Vendor Id') return item['vendor'].vendorId
-                    else if (col === 'Vendor Name') return item['vendor'].name
-                    else if (col === 'Vendor POC Name') return item['vendor'].pocName
-                    else if (col === 'Vendor Phone Number') return item['vendor'].phoneNumber
-                    else if (col === 'Vendor Email') return item['vendor'].email
+                    else if (col === 'Vendor Id') return item['vendor']?.vendorId ?? "Vendor Not Specified"
+                    else if (col === 'Vendor Name') return item['vendor']?.name ?? "Vendor Not Specified"
+                    else if (col === 'Vendor POC Name') return item['vendor']?.pocName ?? "Vendor Not Specified"
+                    else if (col === 'Vendor Phone Number') return item['vendor']?.phoneNumber ?? "Vendor Not Specified"
+                    else if (col === 'Vendor Email') return item['vendor']?.email ?? "Vendor Not Specified"
                     else if (col === 'equipmentID' && item['quantity'] > 1) return `${cellValue}-${(item['quantity'] as number).toString().padStart(2, '0')}`
-                    else if (cellValue instanceof Date) return cellValue.toString()
+                    else if (cellValue instanceof Date) return cellValue.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })
                     return cellValue;
                 });
                 let newRow = worksheet.addRow(rowData);
