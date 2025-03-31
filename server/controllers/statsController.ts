@@ -88,7 +88,7 @@ export const getVendorSumPerYear = async (req: Request, res: Response) => {
                     inventory_item."quantity",
                     inventory_item."poAmount"
                 FROM "inventory_item"
-                WHERE "inventory_item"."poDate" BETWEEN $1 AND $2
+                WHERE "inventory_item"."poDate" BETWEEN $1 AND $2 AND "vendorId" IS NOT NULL
                 AND "inventory_item"."transferId" IS NULL
                 ) "subquery" -- Using a subquery to filter distinct serial numbers
             GROUP BY "subquery"."vendorId", "subquery".year

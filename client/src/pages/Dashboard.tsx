@@ -12,7 +12,7 @@ import hdate from 'human-date'
 
 // Utility function to check if a date is before another date
 const isBefore = (date: Date, comparisonDate: Date): boolean => {
-    return date.getDate() < comparisonDate.getDate();
+    return date.getTime() < comparisonDate.getTime();
 };
 
 // Utility function to add days to a date
