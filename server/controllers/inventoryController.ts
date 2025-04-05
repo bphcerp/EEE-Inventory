@@ -108,8 +108,10 @@ async function mapToInventoryItemAndSave(data: any[], selectedLab: Laboratory, c
         poNumber: data[columnIndexMap["po number"]],
         poDate: parseDate(data[columnIndexMap["po date"]])!,
         lab: selectedLab,
-        labInchargeAtPurchase: data[columnIndexMap["lab incharge at the time of purchase"]],
-        labTechnicianAtPurchase: data[columnIndexMap["lab technician at the time of purchase"]],
+        // labInchargeAtPurchase: data[columnIndexMap["lab incharge at the time of purchase"]],
+        // labTechnicianAtPurchase: data[columnIndexMap["lab technician at the time of purchase"]],
+        labInchargeAtPurchase: selectedLab.facultyInCharge.name,
+        labTechnicianAtPurchase: selectedLab.technicianInCharge.name,
         fundingSource: data[columnIndexMap["funding source"]],
         dateOfInstallation: parseDate(data[columnIndexMap["date of installation"]]) ?? undefined,
         vendor,
@@ -175,7 +177,7 @@ const getAndSaveDataFromSheet = async (path: string, sheetInfo: SheetInfo, selec
 
     // Parse and Save Data
 
-    const selectedLab = (await labRepository.findOneBy({ id: selectedLabId }))!;
+    const selectedLab = (await labRepository.findOne({ where: {id: selectedLabId}, relations: ['facultyInCharge','technicianInCharge'] }))!;
     const queryRunner = itemRepository.manager.connection.createQueryRunner();
     await queryRunner.startTransaction();
 
