@@ -82,13 +82,13 @@ const AddInventoryItem = () => {
             if (editMode) {
                 const dirtyFields = Object.entries(form.state.fieldMetaBase).filter(([_key, value]) => value.isDirty).map(([key]) => key)
 
-                if (!dirtyFields.length){
+                if (!dirtyFields.length) {
                     toast.info("No updated fields detected")
                     return
                 }
 
                 const editedItem = Object.fromEntries(Object.entries(data).filter(([key]) => dirtyFields.includes(key)))
-                
+
                 toast.info("Saving Edits...")
                 api.patch(`/inventory/${location.state!.toBeEditedItem.id}`, editedItem)
                     .then(() => toast.success("Edit successful"))
@@ -96,6 +96,10 @@ const AddInventoryItem = () => {
                 return
             }
             try {
+                if (!data.fundingSource) {
+                    toast.error("Funding Source is required")
+                    return
+                }
                 toast.info("Submitting...")
                 const response = await api.post("/inventory", data);
 
@@ -113,7 +117,7 @@ const AddInventoryItem = () => {
 
     useEffect(() => {
         if (editMode) setLastItemNumber(parseInt(location.state!.toBeEditedItem.equipmentID.match(/\d+/)[0] as string))
-    },[])
+    }, [])
 
 
     return (
@@ -138,6 +142,10 @@ const AddInventoryItem = () => {
                                     <Select disabled={editMode} value={field.state.value} onValueChange={(value) => {
                                         field.handleChange(value)
                                         updateLastItemNumber(value)
+                                        const lab = labs.find(lab => lab.id === value)
+                                        setFieldValue('labInchargeAtPurchase', lab?.facultyInCharge?.name)
+                                        setFieldValue('labTechnicianAtPurchase', lab?.technicianInCharge?.name)
+                                        setFieldValue("currentLocation", lab?.location ?? '')
                                     }}>
                                         <SelectTrigger className="w-52">
                                             <SelectValue placeholder="Select Lab" />
@@ -160,47 +168,37 @@ const AddInventoryItem = () => {
                             )}
                         </Field>
                     )} />
-                    <Subscribe selector={(state) => [state.values.lab, state.isDirty]} children={([labId, isDirty]) => {
-                        let lab: Laboratory | undefined;
-                        if (isDirty) {
-                            lab = labs.find(lab => lab.id === labId)
-                            setFieldValue('labInchargeAtPurchase', lab?.facultyInCharge?.name)
-                            setFieldValue('labTechnicianAtPurchase', lab?.technicianInCharge?.name)
-                        }
-                        return (<>
-                            <Field name="labInchargeAtPurchase">
-                                {({ state }) => (
-                                    <div className="flex flex-col space-y-2">
-                                        <div className="flex space-x-2">
-                                            <Label>Lab In-charge at Purchase<span className="text-xs text-zinc-600">Auto filled</span></Label>
-                                            {(lab && !lab.facultyInCharge) && <AlertTriangle className="text-yellow-400" />}
-                                        </div>
-                                        <Input className="bg-zinc-200 dark:bg-zinc-800" disabled value={state.value ?? "None Specified"} />
-                                    </div>
-                                )}
-                            </Field>
-                            <Field name="labTechnicianAtPurchase">
-                                {({ state }) => (
-                                    <div className="flex flex-col space-y-2">
-                                        <div className="flex space-x-2">
-                                            <Label>Lab Technician at Purchase<span className="text-xs text-zinc-600">Auto filled</span></Label>
-                                            {(lab && !lab.technicianInCharge) && <AlertTriangle className="text-yellow-400" />}
-                                        </div>
-                                        <Input className="bg-zinc-200 dark:bg-zinc-800" disabled value={state.value ?? "None Specified"} />
-                                    </div>
-                                )}
-                            </Field>
-                        </>)
-                    }} />
+                    <Field name="labInchargeAtPurchase">
+                        {({ state }) => (
+                            <div className="flex flex-col space-y-2">
+                                <div className="flex space-x-2">
+                                    <Label>Lab In-charge at Purchase<span className="text-xs text-zinc-600">Auto filled</span></Label>
+                                    {!state.value && <AlertTriangle className="text-yellow-400" />}
+                                </div>
+                                <Input className="bg-zinc-200 dark:bg-zinc-800" disabled value={state.value ?? "None Specified"} />
+                            </div>
+                        )}
+                    </Field>
+                    <Field name="labTechnicianAtPurchase">
+                        {({ state }) => (
+                            <div className="flex flex-col space-y-2">
+                                <div className="flex space-x-2">
+                                    <Label>Lab Technician at Purchase<span className="text-xs text-zinc-600">Auto filled</span></Label>
+                                    {!state.value && <AlertTriangle className="text-yellow-400" />}
+                                </div>
+                                <Input className="bg-zinc-200 dark:bg-zinc-800" disabled value={state.value ?? "None Specified"} />
+                            </div>
+                        )}
+                    </Field>
                 </div>
                 <span className="text-2xl text-zinc-600 dark:text-zinc-300">Item Details</span>
                 <div className="grid grid-cols-3 gap-4">
-                    <Subscribe selector={(state) => [state.values.lab, state.values.itemCategory, state.values.quantity, lastItemNumber, state.isDirty]} children={([labId, categoryId, quantity, lastItemNumber, isDirty]) => {
+                    <Subscribe selector={(state) => [state.values.lab, state.values.itemCategory, state.values.quantity, lastItemNumber, state.fieldMetaBase.lab?.isDirty || state.fieldMetaBase.itemCategory?.isDirty]} children={([labId, categoryId, quantity, lastItemNumber, isDirty]) => {
                         if (isDirty) {
                             const lab = labs.find(lab => lab.id === labId)
                             const categoryCode = categories.find(cateogory => cateogory.id === categoryId)?.code
-                            
-                            const equipmentID = (lab && categoryCode && lastItemNumber) ? `BITS/EEE/${lab.code}/${categoryCode}/${quantity > 1 ? `${lastItemNumber.toString().padStart(4,'0')}-(01-${quantity.toString().padStart(2,'0')})` : lastItemNumber.toString().padStart(4,'0')}` : ''
+
+                            const equipmentID = (lab && categoryCode && lastItemNumber) ? `BITS/EEE/${lab.code}/${categoryCode}/${quantity > 1 ? `${lastItemNumber.toString().padStart(4, '0')}-(01-${quantity.toString().padStart(2, '0')})` : lastItemNumber.toString().padStart(4, '0')}` : ''
                             setFieldValue('equipmentID', equipmentID)
                         }
                         return (<Field name="equipmentID">
@@ -247,15 +245,7 @@ const AddInventoryItem = () => {
                             </div>
                         )}
                     </Field>
-                    <Subscribe selector={(state) => [state.values.lab, state.isDirty]} children={([labId, isDirty]) => {
-
-                        let lab: Laboratory | undefined
-                        if (isDirty) {
-                            lab = labs.find(lab => lab.id == labId)
-                            setFieldValue("currentLocation", lab?.location ?? '')
-                        }
-
-                        return <Field name="currentLocation">
+                    <Field name="currentLocation">
                             {(field) => (
                                 <div className="flex flex-col space-y-2">
                                     <Label>
@@ -266,7 +256,6 @@ const AddInventoryItem = () => {
                                 </div>
                             )}
                         </Field>
-                    }} />
                     <Field name="status">
                         {(field) => (
                             <div className="flex flex-col space-y-2">
@@ -347,7 +336,7 @@ const AddInventoryItem = () => {
                     <Field name="fundingSource">
                         {(field) => (
                             <div className="flex flex-col space-y-2">
-                                <Label>Funding Source</Label>
+                                <Label className="after:content-['*'] after:text-red-500">Funding Source</Label>
                                 <Select value={field.state.value} onValueChange={(value) => field.handleChange(value)} required>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select Funding Source" />
@@ -376,7 +365,7 @@ const AddInventoryItem = () => {
                         {(field) => (
                             <div className="flex flex-col space-y-2">
                                 <Label>Vendor</Label>
-                                <Select value={field.state.value} onValueChange={(value) => field.handleChange(value)} required>
+                                <Select value={field.state.value} onValueChange={(value) => field.handleChange(value)}>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select Vendor" />
                                     </SelectTrigger>

@@ -485,13 +485,12 @@ export const patchInventoryItem = async (req: Request, res: Response) => {
             equipmentIDSplit[3] = category!.code
             categoryCode = category!.code
             equipmentID = equipmentIDSplit.join('/')
+            updatedData.equipmentID = equipmentID
         }
         if (updatedData.lab) {
             res.status(403).send({ message: "Lab cannot be updated for a item once set. Please delete the record and enter again." })
             return
         }
-
-        updatedData.equipmentID = equipmentID
 
         // Update
         if (item.quantity > 1) {
