@@ -510,7 +510,7 @@ export const patchInventoryItem = async (req: Request, res: Response) => {
             })
             await itemRepository.save(newItems)
         }
-        else await itemRepository.save(updatedData);
+        else await itemRepository.save({...item, ...updatedData});
         res.status(200).json({ message: 'Item(s) updated successfully' });
     } catch (error) {
         res.status(500).json({ message: 'Error updating item(s)', error });
