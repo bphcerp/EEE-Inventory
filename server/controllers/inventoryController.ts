@@ -436,7 +436,7 @@ export const addInventoryItem = async (req: Request, res: Response) => {
         const lastItemNumber = (await itemRepository.query(`
             SELECT COALESCE(MAX("serialNumber")::int, 0) AS count 
             FROM inventory_item 
-            WHERE "labId" = $1`, [req.body.labId]))[0].count + 1
+            WHERE "labId" = $1`, [lab?.id]))[0].count + 1
 
         let result: InventoryItem | InventoryItem[];
         if (req.body.quantity == 1) {
