@@ -433,6 +433,15 @@ export const addInventoryItem = async (req: Request, res: Response) => {
 
         const lab = await labRepository.findOneBy({ id: req.body.lab })
         const category = await categoryRepository.findOneBy({ id: req.body.itemCategory })
+        if (!lab) {
+            res.status(404).json({ message: 'Lab not found' });
+            return;
+        }
+        if (!category) {
+            res.status(404).json({ message: 'Category not found' });
+            return;
+        }
+
         const lastItemNumber = (await itemRepository.query(`
             SELECT COALESCE(MAX("serialNumber")::int, 0) AS count 
             FROM inventory_item 
