@@ -13,6 +13,7 @@ import { Router } from "websocket-express";
 import vendorRoutes from "./vendorRoutes";
 import categoryRoutes from './categoryRoutes';
 import statsRoutes from "./statsRoutes";
+import allowOnlyGet from "../middleware/allowOnlyGet";
 
 const router = new Router();
 
@@ -21,6 +22,9 @@ router.use(morgan('combined'))
 
 // Sign in and sign out routes
 router.useHTTP('/auth', authRoutes);
+
+// 6th July 2025 - EEE-IMS Integration: The code has been integrated into EEE-IMS ERP. This Website is set to readonly, allow only GET requests
+router.use(allowOnlyGet)
 
 // User API routes
 router.useHTTP('/users', authMiddleware, userRoutes);

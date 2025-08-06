@@ -18,6 +18,8 @@ import AddInventoryItem from './pages/AddInventoryItem'
 import BulkAddFromExcel from './pages/BulkAddFromExcel'
 import Dashboard from './pages/Dashboard'
 
+export const READ_ONLY_ALLOWED_MESSAGE = 'This portal is set to read-only. Please use the EEE IMS portal';
+
 const RedirectHandler = () => {
   const userPermissions = useUserPermissions();
   return userPermissions !== null ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />;
