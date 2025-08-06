@@ -1,0 +1,7 @@
+pg_dump -U postgres -d eee_inventory --inserts --exclude-table=access_token -F p -f ./eee_inventory.sql
+
+psql -h localhost -U postgres -d eee_inventory -f eee_inventory.sql
+
+node migrateToDrizzle.js
+
+drop database eee_inventory;
