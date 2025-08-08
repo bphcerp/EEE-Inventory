@@ -68,7 +68,7 @@ const AddLabDialog = ({ isOpen, setIsOpen, onAddLab, editInitialData }: AddLabDi
       }}
     >
       <DialogTrigger asChild>
-        { editInitialData ? <Button variant="outline" className="text-blue-500 hover:text-blue-700 hover:bg-background">Edit Lab</Button> : <Button>Add Lab</Button> }
+        { editInitialData ? <Button disabled={true} variant="outline" className="text-blue-500 hover:text-blue-700 hover:bg-background">Edit Lab</Button> : <Button disabled={true}>Add Lab</Button> }
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

@@ -45,11 +45,11 @@ const AddUserDialog = ({ onAddUser, isOpen, setIsOpen, editInitialData }: AddUse
 		}}>
 			<DialogTrigger asChild>
 				{editInitialData ? (
-					<Button variant="outline" className="text-blue-500 hover:text-blue-700 hover:bg-background">
+					<Button disabled={true} variant="outline" className="text-blue-500 hover:text-blue-700 hover:bg-background">
 						Edit User
 					</Button>
 				) : (
-					<Button>Add User</Button>
+					<Button disabled={true}>Add User</Button>
 				)}
 			</DialogTrigger>
 			<DialogContent>

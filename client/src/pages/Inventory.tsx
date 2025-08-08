@@ -155,7 +155,7 @@ export const Inventory = () => {
                         <DeleteConfirmationDialog onConfirm={handleDelete} />
                     )}
                     {userPermissions ?
-                        selectedItems.length === 1 ? <Button variant="outline" onClick={() => {
+                        selectedItems.length === 1 ? <Button disabled={true} variant="outline" onClick={() => {
                             const item = selectedItems[0];
                             ["createdAt", "updatedAt", "poDate", "dateOfInstallation", "warrantyFrom", "warrantyTo", "amcFrom", "amcTo"].forEach((field) => {
                                 if (item[field as keyof InventoryItem]) {
@@ -175,7 +175,7 @@ export const Inventory = () => {
                             })
                         }}
                             className="text-blue-500 hover:text-blue-700 hover:bg-background">Edit Item</Button>
-                            : <Button onClick={() => navigate('/add-item')}>Add Item</Button> : <></>}
+                            : <Button disabled={true} onClick={() => navigate('/add-item')}>Add Item</Button> : <></>}
                 </>} />
             )}
             <TransferConfirmationDialog

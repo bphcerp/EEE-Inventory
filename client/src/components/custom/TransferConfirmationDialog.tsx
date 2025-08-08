@@ -52,7 +52,7 @@ export const TransferConfirmationDialog = ({
     };
 
     return (
-        <Dialog open={open} onOpenChange={onClose}>
+        <Dialog open={open && false} onOpenChange={onClose}>
             <DialogContent className="!max-w-[800px] ">
                 <DialogHeader>
                     <DialogTitle>Transfer Items</DialogTitle>
