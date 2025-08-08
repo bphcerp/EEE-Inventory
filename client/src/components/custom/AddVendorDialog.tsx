@@ -57,11 +57,11 @@ const AddVendorDialog = ({ isOpen, setIsOpen, onAddVendor, editInitialData }: Ad
     >
       <DialogTrigger asChild>
         {editInitialData ? (
-          <Button variant="outline" className="text-blue-500 hover:text-blue-700 hover:bg-background">
+          <Button disabled={true} variant="outline" className="text-blue-500 hover:text-blue-700 hover:bg-background">
             Edit Vendor
           </Button>
         ) : (
-          <Button>Add Vendor</Button>
+          <Button disabled={true}>Add Vendor</Button>
         )}
       </DialogTrigger>
       <DialogContent className="!max-w-2xl">

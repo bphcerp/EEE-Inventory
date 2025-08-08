@@ -39,11 +39,11 @@ const AddVendorCategoryDialog = ({ isOpen, setIsOpen, onAddCategory, editInitial
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         {editInitialData ? (
-          <Button variant="outline" className="text-blue-500 hover:text-blue-700 hover:bg-background">
+          <Button disabled={true} variant="outline" className="text-blue-500 hover:text-blue-700 hover:bg-background">
             Edit Vendor Category
           </Button>
         ) : (
-          <Button>Add Vendor Category</Button>
+          <Button disabled={true}>Add Vendor Category</Button>
         )}
       </DialogTrigger>
       <DialogContent>
